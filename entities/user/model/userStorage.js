@@ -78,7 +78,7 @@ class UserStorage {
         try {
             const users = this.getAllUsers();
             const userIndex = users.findIndex(user => user.id === userId);
-            
+
             if (userIndex === -1) {
                 return { success: false, message: '사용자를 찾을 수 없습니다.' };
             }
@@ -94,6 +94,77 @@ class UserStorage {
         } catch (error) {
             console.error('회원 정보 수정 중 오류:', error);
             return { success: false, message: '회원 정보 수정 중 오류가 발생했습니다.' };
+        }
+    }
+
+    // 프로필 이미지 업데이트
+    updateProfileImage(userId, imageData) {
+        
+        try {
+            const users = this.getAllUsers();
+            const userIndex = users.findIndex(user => user.id === userId);
+            
+            if (userIndex === -1) {
+                return { success: false, message: '사용자를 찾을 수 없습니다.' };
+            }
+
+            // 프로필 이미지 업데이트
+            users[userIndex] = {
+                ...users[userIndex],
+                profileImage: imageData,
+                updatedAt: new Date().toISOString()
+            };
+
+            // localStorage 업데이트
+            this.storage.setItem(this.USERS_KEY, JSON.stringify(users));
+
+            // 현재 로그인된 사용자의 이미지도 업데이트
+            const currentUser = this.getCurrentUser();
+            if (currentUser && currentUser.id === userId) {
+                this.storage.setItem(this.CURRENT_USER_KEY, JSON.stringify({
+                    ...currentUser,
+                    profileImage: imageData
+                }));
+            }
+
+            return { success: true, user: users[userIndex] };
+        } catch (error) {
+            console.error('프로필 이미지 업데이트 중 오류:', error);
+            return { success: false, message: '프로필 이미지 업데이트 중 오류가 발생했습니다.' };
+        }
+    }
+
+    // 프로필 이미지 가져오기
+    getProfileImage(userId) {
+        const DEFAULT_PROFILE_IMAGE = '/shared/assets/images/default-profile.svg';
+        try {
+            const users = this.getAllUsers();
+            const user = users.find(u => u.id === userId);
+            return user?.profileImage || '/shared/assets/images/default-profile.svg';
+        } catch (error) {
+            console.error('프로필 이미지 가져오기 중 오류:', error);
+            return 'DEFAULT_PROFILE_IMAGE';
+        }
+    }
+
+    // 회원 등록 메서드 수정
+    registerUser(userData) {
+        try {
+            const users = this.getAllUsers();
+            if (users.some(user => user.email === userData.email)) {
+                return { success: false, message: '이미 등록된 이메일입니다.' };
+            }
+            users.push({
+                ...userData,
+                id: Date.now().toString(),
+                createdAt: new Date().toISOString(),
+                profileImage: userData.profileImage || '/shared/assets/images/default-profile.svg' // 기본 이미지 설정
+            });
+            this.storage.setItem(this.USERS_KEY, JSON.stringify(users));
+            return { success: true, message: '회원가입이 완료되었습니다.' };
+        } catch (error) {
+            console.error('회원 등록 중 오류:', error);
+            return { success: false, message: '회원가입 처리 중 오류가 발생했습니다.' };
         }
     }
 }

@@ -82,7 +82,7 @@ loginForm.addEventListener('submit', async (e) => {
             alert('로그인에 성공했습니다.');
             
             // 메인 페이지 또는 대시보드로 이동
-            window.location.href = '/pages/post/index.html'; // 또는 원하는 페이지 경로
+            window.location.href = '/pages/post/list/index.html'; // 또는 원하는 페이지 경로
         } else {
             // 로그인 실패
             updateHelperText(

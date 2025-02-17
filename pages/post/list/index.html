@@ -1,3 +1,4 @@
+<!-- pages/post/list/index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -7,31 +8,24 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>아무 말 대잔치</h1>
-            <p class="welcome-message">
-                안녕하세요,<br>
-                아무 말 대잔치 <span id="userName">게시판</span> 입니다.
-            </p>
-        </header>
-
-        <div class="write-button-container">
-            <button class="write-button" id="writeButton">
-                게시글 작성
-            </button>
+    <div id="headerContainer"></div>
+    <main class="container">
+        <div class="welcome-message">
+            <p>안녕하세요,</p>
+            <p>아무 말 대잔치 <strong>게시판</strong> 입니다.</p>
         </div>
+        <button class="write-button" id="writeButton">게시글 작성</button>
+        <div class="posts-container" id="postsContainer"></div>
+        <div class="loading" id="loading">Loading...</div>
+    </main>
 
-        <main class="post-list" id="postList">
-            <!-- 게시글 카드 템플릿 -->
-            <!-- 실제 게시글은 JavaScript로 동적 생성됨 -->
-        </main>
-
-        <!-- 로딩 인디케이터 -->
-        <div class="loading" id="loadingIndicator" style="display: none;">
-            <div class="loading-spinner"></div>
-        </div>
-    </div>
-    <script type="module" src="postList.js"></script>
+    <script type="module">
+        import { Header } from '/shared/components/Header/Header.js';
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new Header('headerContainer');
+        });
+    </script>
+    <script type="module" src="/features/post/list/PostList.js"></script>
 </body>
 </html>
