@@ -1,136 +1,171 @@
-/* Reset & Base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* pages/auth/signup/styles.css */
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #f5f5f5;
-    line-height: 1.6;
-}
-
-/* Header styles */
 .header {
     display: flex;
     align-items: center;
-    padding: 1rem;
-    background-color: #fff;
-    border-bottom: 1px solid #ddd;
+    margin-bottom: 40px;
+    position: relative;
 }
 
 .back-button {
+    position: absolute;
+    left: 0;
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 24px;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 10px;
 }
 
 .header h1 {
-    margin-left: 1rem;
-    color: #ff1493;  /* 분홍색 제목 */
-}
-
-/* Main container styles */
-.signup-container {
-    max-width: 500px;
-    margin: 2rem auto;
-    padding: 2rem;
-}
-
-.signup-container h2 {
+    flex: 1;
     text-align: center;
-    margin-bottom: 2rem;
+    margin: 0;
 }
 
-/* Profile section styles */
-.profile-section {
+.signup-content {
+    padding: 20px;
+}
+
+.signup-content h2 {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 30px;
 }
 
+/* profile-upload 관련 스타일 수정 */
 .profile-upload {
+    text-align: center;
+    margin-bottom: 30px;
     position: relative;
+}
+
+.profile-circle {
     width: 120px;
     height: 120px;
+    background-color: #E9E9E9;
+    border-radius: 50%;
     margin: 0 auto;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-#profilePreview {
+.plus-icon {
+    font-size: 32px;
+    color: #666;
+    position: absolute;
+}
+
+.profile-preview {
     width: 100%;
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    cursor: pointer;
-    background-color: #ddd;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
-/* Form styles */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-input {
-    width: 100%;
-    padding: 0.75rem;
+.profile-dropdown {
+    position: absolute;
+    top: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: white;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 150px;
 }
 
-input:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+.dropdown-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background-color: #E9E9E9;
+}
+
+.hidden {
+    display: none;
+}
+
+.upload-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: #666;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 .helper-text {
-    font-size: 0.75rem;
-    color: #666;
-    margin-top: 0.25rem;
+    margin-top: 4px;
+    font-size: 12px;
+    min-height: 16px;
 }
 
-.error-text {
-    color: #dc3545;
+.helper-text.error {
+    color: #ff0000;
 }
 
-input.error {
-    border-color: #dc3545;
-}
-
-/* Button styles */
-.signup-button, .login-button {
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-radius: 4px;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-bottom: 0.5rem;
+.helper-text.success {
+    color: #666666;
 }
 
 .signup-button {
-    background-color: #4a90e2;
+    width: 100%;
+    padding: 12px;
+    background-color: #ACA0E8;
     color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 10px;
 }
 
-.signup-button:hover {
-    background-color: #357abd;
+.signup-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.login-button {
-    background-color: #f8f9fa;
-    color: #4a90e2;
+.signup-button:not(:disabled) {
+    background-color: #7F6AEE;
 }
 
-.login-button:hover {
-    background-color: #e9ecef;
+.login-link {
+    width: 100%;
+    padding: 12px;
+    background: none;
+    border: 1px solid #ACA0E8;
+    color: #ACA0E8;
+    border-radius: 4px;
+    cursor: pointer;
 }

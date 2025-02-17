@@ -50,7 +50,6 @@ const updateHelperText = (element, helperElement, message, isError = false) => {
 
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 

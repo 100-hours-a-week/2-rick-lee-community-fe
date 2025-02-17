@@ -1,158 +1,97 @@
-import { userStorage } from '/entities/user/model/userStorage.js';
-import { signupAutosave } from './model/signupAutosave.js';
+import { FormInitializer } from './model/FormInitializer.js';
+import { FormValidator } from './model/FormValidator.js';
+import { ProfileImageManager } from './model/ProfileImageManager.js';
+import { SignupAutosave } from './model/signupAutosave.js';
 
-class SignupHandler {
+export class SignupForm {
+    static ROUTES = {
+        LOGIN: '/pages/auth/login/index.html'
+    };
+
     constructor() {
-        // DOM Elements
-        this.form = document.getElementById('signupForm');
-        this.emailInput = document.getElementById('email');
-        this.passwordInput = document.getElementById('password');
-        this.passwordConfirmInput = document.getElementById('passwordConfirm');
-        this.nicknameInput = document.getElementById('nickname');
-        this.profileInput = document.getElementById('profileInput');
-        this.profilePreview = document.getElementById('profilePreview');
-        this.backButton = document.querySelector('.back-button');
-        this.loginButton = document.querySelector('.login-button');
+        this.formInitializer = new FormInitializer();
+        const { form, inputs, buttons, helperTexts } = this.formInitializer.initialize();
+        console.log('Initialized elements:', { form, inputs, buttons, helperTexts }); // 디버깅 추가
+        this.form = form;
+        this.inputs = inputs;
+        this.buttons = buttons;
+        this.helperTexts = helperTexts;
 
-        // Validation Patterns
-        this.emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        this.passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
-        this.nicknameRegex = /^[a-zA-Z0-9가-힣]{2,10}$/;
-
-        this.initializeEventListeners();
+        this.initializeState();
+        this.initializeManagers();
+        this.setupEventListeners();
     }
 
-    // Helper text update
-    updateHelperText(element, message, isError = false) {
-        const helperText = element.nextElementSibling;
-        helperText.textContent = message;
-        helperText.className = `helper-text ${isError ? 'error-text' : ''}`;
-        element.className = isError ? 'error' : '';
+    initializeState() {
+        this.validationState = {
+            email: false,
+            password: false,
+            passwordConfirm: false,
+            nickname: false
+        };
     }
 
-    // Validation methods
-    validateEmail(email) {
-        if (!email) return '이메일을 입력해주세요.';
-        if (!this.emailRegex.test(email)) return '올바른 이메일 형식이 아닙니다.';
-        if (userStorage.getAllUsers().some(user => user.email === email)) {
-            return '이미 등록된 이메일입니다.';
-        }
-        return '';
+    initializeManagers() {
+        this.validator = new FormValidator(this);
+        this.validator.initialize();
+
+        this.profileManager = new ProfileImageManager(this);
+        this.profileManager.initialize();
+
+        this.autosave = new SignupAutosave(this);
+        this.autosave.initialize();
     }
 
-    validatePassword(password) {
-        if (!password) return '비밀번호를 입력해주세요.';
-        if (!this.passwordRegex.test(password)) {
-            return '비밀번호는 8~20자의 영문 대/소문자, 숫자, 특수문자를 포함해야 합니다.';
-        }
-        return '';
+    setupEventListeners() {
+        console.log('Setting up event listeners for inputs:', this.inputs); // 디버깅 추가
+        Object.entries(this.inputs)
+            .filter(([key]) => key !== 'profileImage')
+            .forEach(([key, input]) => {
+                console.log(`Setting up listeners for ${key}`, input); // 디버깅 추가
+
+                ['blur', 'input'].forEach(eventType => {
+                    input.addEventListener(eventType, () => {
+                        console.log(`Event triggered: ${eventType} on ${key}`); // 디버깅용
+                        this.validator.validateField(key, input.value);
+                    });
+                });
+            });
+
+        // 폼 제출
+        this.form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
+    
+        // 페이지 이동
+        ['back', 'login'].forEach(btnType => {
+            this.buttons[btnType].addEventListener('click', () => {
+                this.navigateTo(SignupPage.ROUTES.LOGIN);
+            });
+        });
     }
+    handleSubmit() {
+        const formData = {
+            email: this.inputs.email.value,
+            password: this.inputs.password.value,
+            nickname: this.inputs.nickname.value,
+            profileImage: this.profileManager.getProfileImageSrc()
+        };
 
-    validatePasswordConfirm(password, confirmPassword) {
-        if (!confirmPassword) return '비밀번호 확인을 입력해주세요.';
-        if (password !== confirmPassword) return '비밀번호가 일치하지 않습니다.';
-        return '';
-    }
-
-    validateNickname(nickname) {
-        if (!nickname) return '닉네임을 입력해주세요.';
-        if (!this.nicknameRegex.test(nickname)) {
-            return '닉네임은 2~10자의 한글, 영문, 숫자만 가능합니다.';
-        }
-        return '';
-    }
-
-    // Event handlers
-    handleProfileClick = () => {
-        this.profileInput.click();
-    }
-
-    handleSubmit = async (e) => {
-        e.preventDefault();
-
-        const email = this.emailInput.value.trim();
-        const password = this.passwordInput.value;
-        const passwordConfirm = this.passwordConfirmInput.value;
-        const nickname = this.nicknameInput.value.trim();
-
-        // Validate all fields
-        const emailError = this.validateEmail(email);
-        const passwordError = this.validatePassword(password);
-        const passwordConfirmError = this.validatePasswordConfirm(password, passwordConfirm);
-        const nicknameError = this.validateNickname(nickname);
-
-        if (emailError || passwordError || passwordConfirmError || nicknameError) {
-            if (emailError) this.updateHelperText(this.emailInput, emailError, true);
-            if (passwordError) this.updateHelperText(this.passwordInput, passwordError, true);
-            if (passwordConfirmError) this.updateHelperText(this.passwordConfirmInput, passwordConfirmError, true);
-            if (nicknameError) this.updateHelperText(this.nicknameInput, nicknameError, true);
-            return;
-        }
-
-        try {
-            const userData = {
-                email,
-                password: 'ACAD0EB' + password + '7F6AEE',
-                nickname,
-                profileImage: this.profilePreview.src
-            };
-
-            const result = userStorage.registerUser(userData);
-
+        if (Object.values(this.validator.validationState).every(valid => valid)) {
+            const result = userStorage.registerUser(formData);
+            
             if (result.success) {
-                signupAutosave.clearSavedData();
-                alert(result.message);
-                window.location.href = '/pages/auth/login/index.html';
+                this.autosave.clearSavedData();
+                alert('회원가입이 완료되었습니다.');
+                this.navigateTo(SignupPage.ROUTES.LOGIN);
             } else {
                 alert(result.message);
             }
-        } catch (error) {
-            console.error('Signup error:', error);
-            alert('회원가입 처리 중 오류가 발생했습니다.');
         }
     }
-
-    initializeEventListeners() {
-        // 실시간 유효성 검사
-        this.emailInput.addEventListener('input', () => {
-            const error = this.validateEmail(this.emailInput.value.trim());
-            this.updateHelperText(this.emailInput, error || '사용 가능한 이메일입니다.', !!error);
-        });
-
-        this.passwordInput.addEventListener('input', () => {
-            const error = this.validatePassword(this.passwordInput.value);
-            this.updateHelperText(this.passwordInput, error || '올바른 비밀번호 형식입니다.', !!error);
-        });
-
-        this.passwordConfirmInput.addEventListener('input', () => {
-            const error = this.validatePasswordConfirm(
-                this.passwordInput.value,
-                this.passwordConfirmInput.value
-            );
-            this.updateHelperText(this.passwordConfirmInput, error || '비밀번호가 일치합니다.', !!error);
-        });
-
-        this.nicknameInput.addEventListener('input', () => {
-            const error = this.validateNickname(this.nicknameInput.value.trim());
-            this.updateHelperText(this.nicknameInput, error || '사용 가능한 닉네임입니다.', !!error);
-        });
-
-        // 프로필 이미지
-        this.profilePreview.addEventListener('click', this.handleProfileClick);
-
-        // 폼 제출
-        this.form.addEventListener('submit', this.handleSubmit);
-
-        // 네비게이션
-        this.backButton.addEventListener('click', () => window.history.back());
-        this.loginButton.addEventListener('click', () => {
-            window.location.href = '/pages/auth/login/index.html';
-        });
+    navigateTo(ROUTES) {
+        window.location.href = ROUTES;
     }
 }
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    const signupHandler = new SignupHandler();
-    signupAutosave.init();
-});
+new SignupForm();
