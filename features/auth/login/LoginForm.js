@@ -1,6 +1,6 @@
 // DOM Elements
-import { userStorage } from "../../../entities/user/model/userStorage.js";
-import { authTempStorage } from "../../../entities/user/model/authTempStorge.js";
+import { userStorage } from "/entities/user/model/userStorage.js";
+import { authTempStorage } from "/entities/user/model/authTempStorge.js";
 
 const loginForm = document.querySelector('form');
 const emailInput = document.getElementById('email');
@@ -82,7 +82,7 @@ loginForm.addEventListener('submit', async (e) => {
             alert('로그인에 성공했습니다.');
             
             // 메인 페이지 또는 대시보드로 이동
-            window.location.href = '/index.html'; // 또는 원하는 페이지 경로
+            window.location.href = '/pages/post/index.html'; // 또는 원하는 페이지 경로
         } else {
             // 로그인 실패
             updateHelperText(
@@ -115,6 +115,6 @@ passwordInput.addEventListener('input', () => {
 });
 
 signupButton.addEventListener('click', () => {
-    window.location.href = '../pages/signup.html';
+    window.location.href = '/pages/auth/signup/index.html';
 });
 

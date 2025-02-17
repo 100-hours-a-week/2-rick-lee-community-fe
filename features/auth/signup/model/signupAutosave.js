@@ -1,4 +1,4 @@
-import { authTempStorage } from '../../../../entities/user/model/authTempStorge.js';
+import { authTempStorage } from '/entities/user/model/authTempStorge.js';
 
 class SignupAutosave {
     constructor() {

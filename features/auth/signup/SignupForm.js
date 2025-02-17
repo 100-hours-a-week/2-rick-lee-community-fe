@@ -1,5 +1,5 @@
-import { userStorage } from '../../../entities/user/model/userStorage.js';
-import { signupAutosave } from '../login/model/signupAutosave.js';
+import { userStorage } from '/entities/user/model/userStorage.js';
+import { signupAutosave } from './model/signupAutosave.js';
 
 class SignupHandler {
     constructor() {
@@ -102,7 +102,7 @@ class SignupHandler {
             if (result.success) {
                 signupAutosave.clearSavedData();
                 alert(result.message);
-                window.location.href = '../pages/login.html';
+                window.location.href = '/pages/auth/login/index.html';
             } else {
                 alert(result.message);
             }
@@ -146,7 +146,7 @@ class SignupHandler {
         // 네비게이션
         this.backButton.addEventListener('click', () => window.history.back());
         this.loginButton.addEventListener('click', () => {
-            window.location.href = '../pages/login.html';
+            window.location.href = '/pages/auth/login/index.html';
         });
     }
 }
