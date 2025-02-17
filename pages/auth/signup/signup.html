@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입</title>
+    <link rel="stylesheet" href="../css/signup.css">
+</head>
+<body>
+    <div class="header">
+        <button type="button" class="back-button">←</button>
+    </div>
+
+    <main class="signup-container">
+        <h2>회원가입</h2>
+        
+        <form id="signupForm">
+            <div class="profile-section">
+                <div class="profile-upload">
+                    <img id="profilePreview" src="default-profile.png" alt="프로필 이미지">
+                    <input type="file" id="profileInput" accept="image/*" hidden>
+                    <p class="helper-text">* helper text</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">이메일*</label>
+                <input type="email" id="email" placeholder="이메일을 입력하세요">
+                <p class="helper-text">* helper text</p>
+            </div>
+
+            <div class="form-group">
+                <label for="password">비밀번호*</label>
+                <input type="password" id="password" placeholder="비밀번호를 입력하세요">
+                <p class="helper-text">* helper text</p>
+            </div>
+
+            <div class="form-group">
+                <label for="passwordConfirm">비밀번호 확인*</label>
+                <input type="password" id="passwordConfirm" placeholder="비밀번호를 한번 더 입력하세요">
+                <p class="helper-text">* helper text</p>
+            </div>
+
+            <div class="form-group">
+                <label for="nickname">닉네임*</label>
+                <input type="text" id="nickname" placeholder="닉네임을 입력하세요">
+                <p class="helper-text">* helper text</p>
+            </div>
+
+            <button type="submit" class="signup-button">회원가입</button>
+            <button type="button" class="login-button">로그인하러 가기</button>
+        </form>
+    </main>
+    <script type="module" src="../js/signup.js"></script>
+</body>
+</html>
