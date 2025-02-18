@@ -1,139 +1,115 @@
-// pages/post/list/index.js
-import { Header } from '/shared/components/Header/Header.js';
-import { formatNumber, formatDate } from '/shared/utils/formatters.js';
+// features/post/list/PostList.js
+import { postStorage } from '/entities/post/PostStorage.js'
 
-class PostList {
-    constructor() {
-        this.page = 1;
-        this.loading = false;
-        this.hasMore = true;
-        this.init();
-    }
+// DOM 요소 참조
+const postsContainer = document.getElementById('postsContainer');
+const loadingElement = document.getElementById('loading');
+const writeButton = document.getElementById('writeButton');
 
-    async init() {
-        // 헤더 초기화
-        new Header('header');
-        
-        // 이벤트 리스너 설정
-        this.setupEventListeners();
-        
-        // 초기 게시글 로드
-        await this.loadPosts();
-    }
+// HTML 이스케이프 처리
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    setupEventListeners() {
-        // 게시글 작성 버튼
-        document.getElementById('writeButton').addEventListener('click', () => {
-            window.location.href = '/pages/post/write/index.html';
-        });
+// 날짜 포맷팅
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
 
-        // 무한 스크롤
-        window.addEventListener('scroll', () => {
-            if (this.shouldLoadMore()) {
-                this.loadPosts();
-            }
-        });
-    }
-
-    shouldLoadMore() {
-        if (this.loading || !this.hasMore) return false;
-
-        const scrollHeight = document.documentElement.scrollHeight;
-        const scrollTop = window.scrollY;
-        const clientHeight = window.innerHeight;
-
-        return scrollHeight - scrollTop - clientHeight < 100;
-    }
-
-    async loadPosts() {
-        if (this.loading) return;
-
-        this.loading = true;
-        document.getElementById('loading').style.display = 'block';
-
-        try {
-            // 실제 구현에서는 API 호출로 대체
-            const posts = await this.fetchPosts(this.page);
-            this.renderPosts(posts);
-            
-            this.page++;
-            this.hasMore = posts.length > 0;
-        } catch (error) {
-            console.error('게시글 로드 중 오류:', error);
-        } finally {
-            this.loading = false;
-            document.getElementById('loading').style.display = 'none';
-        }
-    }
-
-    async fetchPosts(page) {
-        // 실제 구현에서는 API 호출로 대체
-        // 임시 데이터 반환
-        return Array(10).fill().map((_, i) => ({
-            id: (page - 1) * 10 + i + 1,
-            title: `제목 ${(page - 1) * 10 + i + 1}`,
-            content: '더미 게시글',
-            createdAt: new Date().toISOString(),
-            commentCount: Math.floor(Math.random() * 150000),
-            likeCount: Math.floor(Math.random() * 150000)
-        }));
-    }
-
-    renderPosts(posts) {
-        const container = document.getElementById('postsContainer');
-        
-        posts.forEach(post => {
-            const postElement = this.createPostElement(post);
-            container.appendChild(postElement);
-        });
-    }
-
-    createPostElement(post) {
-        const element = document.createElement('div');
-        element.className = 'post-card';
-        element.innerHTML = `
+// 게시글 HTML 요소 생성
+function createPostElement(post) {
+    return `
+        <div class="post-item" data-post-id="${post.id}">
             <div class="post-header">
-                <div class="post-title">${this.truncateTitle(post.title)}</div>
-                <div class="post-date">${formatDate(post.createdAt)}</div>
+                <h3 class="post-title">${escapeHtml(post.title)}</h3>
+                <div class="post-meta">
+                    <span class="post-date">${formatDate(post.createdAt)}</span>
+                    <span class="post-stats">
+                        <span class="views">조회 ${post.viewCount}</span>
+                        <span class="comments">댓글 ${post.commentCount}</span>
+                        <span class="likes">좋아요 ${post.likeCount}</span>
+                    </span>
+                </div>
             </div>
-            <div class="post-stats">
-                <span>댓글 ${formatNumber(post.commentCount)}</span>
-                <span>좋아요 ${formatNumber(post.likeCount)}</span>
-            </div>
-        `;
+        </div>
+    `;
+}
 
-        element.addEventListener('click', () => {
-            window.location.href = `/pages/post/detail/index.html?id=${post.id}`;
-        });
+// 로딩 상태 표시
+function showLoading() {
+    loadingElement.style.display = 'block';
+}
 
-        return element;
+// 로딩 상태 숨기기
+function hideLoading() {
+    loadingElement.style.display = 'none';
+}
+
+// 에러 상태 표시
+function showError(message) {
+    postsContainer.innerHTML = `
+        <div class="error-state">
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+// 빈 상태 표시
+function showEmptyState() {
+    postsContainer.innerHTML = `
+        <div class="empty-state">
+            <p>아직 게시글이 없습니다.</p>
+            <p>첫 번째 게시글의 주인공이 되어보세요!</p>
+        </div>
+    `;
+}
+
+// 게시글 목록 렌더링
+function renderPosts(posts) {
+    if (!posts.length) {
+        showEmptyState();
+        return;
     }
 
-    truncateTitle(title) {
-        return title.length > 26 ? title.slice(0, 26) : title;
+    postsContainer.innerHTML = posts
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map(post => createPostElement(post))
+        .join('');
+}
+
+// 게시글 목록 로드
+async function loadPosts() {
+    try {
+        showLoading();
+        const posts = postStorage.getAllPosts();
+        renderPosts(posts);
+    } catch (error) {
+        console.error('게시글 목록 로딩 중 오류:', error);
+        showError('게시글을 불러오는 중 오류가 발생했습니다.');
+    } finally {
+        hideLoading();
     }
 }
 
-// 포매터 유틸리티 함수
-const formatNumber = (num) => {
-    if (num >= 100000) return Math.floor(num / 1000) + 'k';
-    if (num >= 10000) return '1만';
-    if (num >= 1000) return Math.floor(num / 1000) + 'k';
-    return num.toString();
-};
+// 이벤트 리스너 설정
+function setupEventListeners() {
+    writeButton.addEventListener('click', () => {
+        window.location.href = '/pages/post/write/index.html';
+    });
+}
 
-const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    }).replace(/\./g, '-');
-};
+// 초기화
+function initialize() {
+    loadPosts();
+    setupEventListeners();
+}
 
-// 페이지 초기화
-new PostList();
+// 페이지 로드 시 초기화
+initialize();

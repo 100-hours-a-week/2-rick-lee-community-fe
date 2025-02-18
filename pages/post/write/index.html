@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아무 말 대잔치</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="headerContainer">
+        <script type="module">
+            import { Header } from '/shared/components/Header/Header.js';
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                new Header('headerContainer');
+            });
+        </script>
+    </div>
+    <div class="container">
+        <main class="write-form">
+            <h2 style="text-align: center;">게시글 작성</h2>
+            <form id="postForm">
+                <div class="input-group">
+                    <label for="title">제목*</label>
+                    <input type="text" id="title" name="title" maxlength="26" placeholder="제목을 입력해주세요. (최대 26글자)">
+                    <span class="char-count">0/26</span>
+                </div>
+                
+                <div class="input-group">
+                    <label for="content">내용*</label>
+                    <textarea id="content" name="content" placeholder="내용을 입력해주세요."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>이미지</label>
+                    <div class="image-upload" id="imageUpload">
+                        <input type="file" id="imageInput" accept="image/*" hidden>
+                        <div class="upload-placeholder">
+                            <span>파일/사진을 선택해주세요.</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="submitButton" class="submit-button">완료</button>
+            </form>
+        </main>
+    </div>
+    <script type="module" src="/features/post/write/PostWrite.js"></script>
+</body>
+</html>
