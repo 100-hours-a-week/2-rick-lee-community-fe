@@ -4,22 +4,35 @@ import { userStorage } from '/entities/user/model/userStorage.js';
 export class Header {
     constructor(containerId) {
         this.containerId = containerId;
-        this.isDropdownVisible = false;
-        this.init();
+        this.elements = {};
+        this.state = {
+            isInitialized: false,
+            isDropdownVisible: false,
+            error: null
+        };
+        this.initialize();
     }
 
-    async init() {
-        await this.loadStyles();
-        await this.loadHeader();
-        this.setupProfileImage();
-        this.setupDropdown();
+    async initialize() {
+        try {
+            await this.loadDependencies();
+            await this.loadHeader();
+            this.cacheElements();
+            this.bindEvents();
+            this.updateUI();
+            this.state.isInitialized = true;
+        } catch (error) {
+            this.state.error = error;
+            this.handleError('Header initialization failed', error);
+        }
     }
 
-    async loadStyles() {
-        if (!document.querySelector('link[href="/shared/components/Header/styles.css"]')) {
+    async loadDependencies() {
+        const styleUrl = '/shared/components/Header/styles.css';
+        if (!document.querySelector(`link[href="${styleUrl}"]`)) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = '/shared/components/Header/styles.css';
+            link.href = styleUrl;
             document.head.appendChild(link);
         }
     }
@@ -27,56 +40,116 @@ export class Header {
     async loadHeader() {
         try {
             const response = await fetch('/shared/components/Header/header.html');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const html = await response.text();
             document.getElementById(this.containerId).innerHTML = html;
         } catch (error) {
-            console.error('헤더 로드 중 오류:', error);
+            throw new Error('Failed to load header content: ' + error.message);
         }
     }
 
-    setupProfileImage() {
-        const currentUser = userStorage.getCurrentUser();
-        const profileImage = document.getElementById('userProfileImage');
-        const DEFAULT_PROFILE_IMAGE = '/shared/assets/images/default-profile.svg';
-    
-        if (currentUser) {
-            profileImage.src = userStorage.getProfileImage(currentUser.id);
-        } else {
-            profileImage.src = DEFAULT_PROFILE_IMAGE;
-        }
-    }
+    cacheElements() {
+        // Cache all required DOM elements
+        const elements = {
+            container: document.getElementById(this.containerId),
+            backButton: document.getElementById('backButton'),
+            profileContainer: document.getElementById('profile-container'),
+            profileImage: document.getElementById('userProfileImage'),
+            profileDropdown: document.getElementById('profileDropdown'),
+            editProfile: document.getElementById('editProfile'),
+            editPassword: document.getElementById('editPassword'),
+            logout: document.getElementById('logout')
+        };
 
-    setupDropdown() {
-        const profileImage = document.getElementById('profileImage');
-        const dropdown = document.getElementById('profileDropdown');
-        const editProfile = document.getElementById('editProfile');
-        const editPassword = document.getElementById('editPassword');
-        const logout = document.getElementById('logout');
-
-        profileImage.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.isDropdownVisible = !this.isDropdownVisible;
-            dropdown.style.display = this.isDropdownVisible ? 'block' : 'none';
-        });
-
-        document.addEventListener('click', () => {
-            if (this.isDropdownVisible) {
-                this.isDropdownVisible = false;
-                dropdown.style.display = 'none';
+        // Validate required elements
+        Object.entries(elements).forEach(([key, element]) => {
+            if (!element) {
+                throw new Error(`Required element "${key}" not found`);
             }
         });
 
-        editProfile.addEventListener('click', () => {
-            window.location.href = '/pages/auth/profile/index.html';
-        });
+        this.elements = elements;
+    }
 
-        editPassword.addEventListener('click', () => {
-            window.location.href = '/pages/auth/profile/password.html';
-        });
+    bindEvents() {
+        // Back button navigation
+        this.elements.backButton?.addEventListener('click', this.handleBackNavigation.bind(this));
 
-        logout.addEventListener('click', () => {
-            userStorage.logout();
-            window.location.href = '/pages/auth/login/index.html';
-        });
+        // Profile dropdown events
+        this.elements.profileImage?.addEventListener('click', this.handleProfileClick.bind(this));
+        document.addEventListener('click', this.handleOutsideClick.bind(this));
+
+        // Profile menu actions
+        this.elements.editProfile?.addEventListener('click', () => this.navigate('/pages/auth/profile/index.html'));
+        this.elements.editPassword?.addEventListener('click', () => this.navigate('/pages/auth/profile/password.html'));
+        this.elements.logout?.addEventListener('click', this.handleLogout.bind(this));
+    }
+
+    updateUI() {
+        this.updateProfileVisibility();
+        this.updateProfileImage();
+    }
+
+    updateProfileVisibility() {
+        const currentUser = userStorage.getCurrentUser();
+        if (this.elements.profileContainer) {
+            this.elements.profileContainer.style.display = currentUser ? 'block' : 'none';
+        }
+    }
+
+    updateProfileImage() {
+        const currentUser = userStorage.getCurrentUser();
+        const DEFAULT_PROFILE_IMAGE = '/shared/assets/images/default-profile.svg';
+        
+        if (this.elements.profileImage) {
+            this.elements.profileImage.src = currentUser 
+                ? userStorage.getProfileImage(currentUser.id) 
+                : DEFAULT_PROFILE_IMAGE;
+        }
+    }
+
+    handleBackNavigation() {
+        if (document.referrer) {
+            history.back();
+        } else {
+            this.navigate('/');
+        }
+    }
+
+    handleProfileClick(event) {
+        event.stopPropagation();
+        this.state.isDropdownVisible = !this.state.isDropdownVisible;
+        this.elements.profileDropdown.style.display = 
+            this.state.isDropdownVisible ? 'block' : 'none';
+    }
+
+    handleOutsideClick() {
+        if (this.state.isDropdownVisible) {
+            this.state.isDropdownVisible = false;
+            this.elements.profileDropdown.style.display = 'none';
+        }
+    }
+
+    async handleLogout() {
+        try {
+            await userStorage.logout();
+            this.navigate('/pages/auth/login/index.html');
+        } catch (error) {
+            this.handleError('Logout failed', error);
+        }
+    }
+
+    navigate(path) {
+        window.location.href = path;
+    }
+
+    handleError(message, error) {
+        console.error(message, error);
+        // 여기에 에러 UI 표시 로직 추가 가능
+    }
+
+    // Public method for external updates
+    refresh() {
+        this.updateUI();
     }
 }

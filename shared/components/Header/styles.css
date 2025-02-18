@@ -4,7 +4,6 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem;
-    border-bottom: 1px solid #eee;
 }
 
 .header-content {
@@ -17,6 +16,15 @@
     align-items: center;
     gap: 20px;  /* h1과 프로필 이미지 사이 간격 */
     position: relative;
+}
+.back-button {
+    position: absolute;
+    left: 0;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 10px;
 }
 
 .header h1 {

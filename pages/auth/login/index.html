@@ -7,6 +7,15 @@
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+    <div id="headerContainer">
+        <script type="module">
+            import { Header } from '/shared/components/Header/Header.js';
+            
+            document.addEventListener('DOMContentLoaded', () => {
+                new Header('headerContainer');
+            });
+        </script>
+    </div>
     <div class="login-container">
         <h1 class="login-title">로그인</h1>
         <form>

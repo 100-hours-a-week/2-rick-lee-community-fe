@@ -72,7 +72,7 @@ function setupEventListeners() {
     nicknameInput.addEventListener('input', updateCharCount);
 
     // 폼 제출
-    profileForm.addEventListener('submit', async (e) => {
+    profileForm.addEventListener('modify', async (e) => {
         e.preventDefault();
         const nickname = nicknameInput.value.trim();
         const validation = validateNickname(nickname);

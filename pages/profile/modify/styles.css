@@ -41,14 +41,7 @@ body {
 }
 
 .profile-circle:hover {
-    background-color: #E9E9E9;
-}
-
-.profile-button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
+    background-color: #696969;
 }
 
 
@@ -96,8 +89,8 @@ input:disabled {
     font-size: 0.875rem;
 }
 
-.submit-button {
-    background-color: #007bff;
+.modify-button {
+    background-color: #ACA0EB;
     color: #fff;
     padding: 0.75rem;
     border: none;
@@ -106,7 +99,18 @@ input:disabled {
     font-size: 1rem;
     margin-top: 1rem;
 }
-
+.submit-button {
+    color:  white;
+    background-color: #ACA0EB;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1rem;
+    width: 25%;
+    margin: 0 auto;
+}
 .delete-button {
     background-color: transparent;
     color: #dc3545;
