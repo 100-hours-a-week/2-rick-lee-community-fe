@@ -26,7 +26,7 @@
                     <input type="file" id="profileImage" accept="image/*" class="profile-input" hidden>
                     <div class="profile-circle" id="profileImageContainer">
                         <img src="" alt="프로필 이미지" id="previewImage" class="profile-preview hidden">
-                        <span class="plus-icon">+</span>
+                        <span class="plus-icon" id="plusIcon">+</span>
                     </div>
                     <div class="profile-dropdown hidden" id="profileDropdown">
                         <div class="dropdown-item" id="uploadImage">
@@ -43,7 +43,7 @@
                     <input type="email" 
                             id="email" 
                             placeholder="이메일을 입력하세요">
-                    <p class="helper-text" data-id="email">* helper text</p>
+                    <p class="helper-text" id="emailHelper">* helper text</p>
                 </div>
 
                 <div class="input-group">
@@ -51,7 +51,7 @@
                     <input type="password" 
                             id="password" 
                             placeholder="비밀번호를 입력하세요">
-                    <p class="helper-text" data-id="password">* helper text</p>
+                    <p class="helper-text" id="passwordHelper">* helper text</p>
                 </div>
 
                 <div class="input-group">
@@ -59,7 +59,7 @@
                     <input type="password" 
                             id="passwordConfirm" 
                             placeholder="비밀번호를 한번 더 입력하세요">
-                    <p class="helper-text" data-id="passwordConfirm">* helper text</p>
+                    <p class="helper-text" id="passwordConfirmHelper">* helper text</p>
                 </div>
 
                 <div class="input-group">
@@ -67,16 +67,14 @@
                     <input type="text" 
                             id="nickname" 
                             placeholder="닉네임을 입력하세요">
-                    <p class="helper-text" data-id="nickname">* helper text</p>
+                    <p class="helper-text" id="nicknameHelper">* helper text</p>
                 </div>
 
-                <button type="submit" 
-                        class="signup-button" 
+                <button class="signup-button" 
                         id="signupButton" 
                         disabled>회원가입</button>
                 
-                <button type="button" 
-                        class="login-link" 
+                <button class="login-link" 
                         id="loginButton">로그인하러 가기</button>
             </form>
         </main>

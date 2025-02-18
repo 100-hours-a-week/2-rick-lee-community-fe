@@ -1,5 +1,5 @@
 //유효성 검사
-
+import {userStorage} from "/entities/user/model/userStorage.js"
 export class FormValidator {
     static VALIDATION_MESSAGES = {
         REQUIRED: {
@@ -130,13 +130,13 @@ export class FormValidator {
         if (this.isEmailDuplicate(value)) {
             return {
                 isValid: false,
-                message: SignupPage.VALIDATION_MESSAGES.DUPLICATE.email,
+                message: FormValidator.VALIDATION_MESSAGES.DUPLICATE.email,
                 status: 'error'
             };
         }
         return {
             isValid: true,
-            message: SignupPage.VALIDATION_MESSAGES.SUCCESS.email,
+            message: FormValidator.VALIDATION_MESSAGES.SUCCESS.email,
             status: 'success'
         };
     }
@@ -144,13 +144,13 @@ export class FormValidator {
         if (!this.isValidPassword(value)) {
             return {
                 isValid: false,
-                message: SignupPage.VALIDATION_MESSAGES.INVALID.password,
+                message: FormValidator.VALIDATION_MESSAGES.INVALID.password,
                 status: 'error'
             };
         }
         return {
             isValid: true,
-            message: SignupPage.VALIDATION_MESSAGES.SUCCESS.password,
+            message: FormValidator.VALIDATION_MESSAGES.SUCCESS.password,
             status: 'success'
         };
     }
@@ -159,13 +159,13 @@ export class FormValidator {
         if (value !== this.inputs.password.value) {
             return {
                 isValid: false,
-                message: SignupPage.VALIDATION_MESSAGES.INVALID.passwordConfirm,
+                message: FormValidator.VALIDATION_MESSAGES.INVALID.passwordConfirm,
                 status: 'error'
             };
         }
         return {
             isValid: true,
-            message: SignupPage.VALIDATION_MESSAGES.SUCCESS.passwordConfirm,
+            message: FormValidator.VALIDATION_MESSAGES.SUCCESS.passwordConfirm,
             status: 'success'
         };
     }
@@ -173,20 +173,20 @@ export class FormValidator {
         if (value.includes(' ') || value.length > 10) {
             return {
                 isValid: false,
-                message: SignupPage.VALIDATION_MESSAGES.INVALID.nickname,
+                message: FormValidator.VALIDATION_MESSAGES.INVALID.nickname,
                 status: 'error'
             };
         }
         if (this.isNicknameDuplicate(value)) {
             return {
                 isValid: false,
-                message: SignupPage.VALIDATION_MESSAGES.DUPLICATE.nickname,
+                message: FormValidator.VALIDATION_MESSAGES.DUPLICATE.nickname,
                 status: 'error'
             };
         }
         return {
             isValid: true,
-            message: SignupPage.VALIDATION_MESSAGES.SUCCESS.nickname,
+            message: FormValidator.VALIDATION_MESSAGES.SUCCESS.nickname,
             status: 'success'
         };
     }

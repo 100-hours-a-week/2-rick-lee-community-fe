@@ -2,17 +2,37 @@
 import { authTempStorage } from '/entities/user/model/authTempStorge.js';
 
 export class SignupAutosave {
-    constructor(signupPage) {
+    constructor(signupPage, validateFieldFn) {
         this.signupPage = signupPage;
-        this.formElements = {
-            email: signupPage.inputs.email,
-            password: signupPage.inputs.password,
-            passwordConfirm: signupPage.inputs.passwordConfirm,
-            nickname: signupPage.inputs.nickname,
-            profilePreview: signupPage.profileElements.preview,
-            plusIcon: signupPage.profileElements.plusIcon
+        this.validateField = validateFieldFn;
+    }
+
+    validateSignupPage(signupPage) {
+        if (!signupPage) {
+            throw new Error('SignupPage instance is required');
+        }
+    }
+
+    initializeFormElements() {
+        const elements = {
+            email: this.signupPage.inputs.email,
+            password: this.signupPage.inputs.password,
+            passwordConfirm: this.signupPage.inputs.passwordConfirm,
+            nickname: this.signupPage.inputs.nickname,
+            profilePreview: this.signupPage.profileElements.preview,
+            plusIcon: this.signupPage.profileElements.plusIcon
         };
-        this.init();
+
+        this.validateElements(elements);
+        return elements;
+    }
+
+    validateElements(elements) {
+        Object.entries(elements).forEach(([key, element]) => {
+            if (!element) {
+                throw new Error(`Required form element "${key}" not found`);
+            }
+        });
     }
 
     initialize() {
@@ -22,16 +42,21 @@ export class SignupAutosave {
     }
 
     setupAutoSave() {
-        let timer;
-        const inputElements = Object.values(this.formElements)
-            .filter(element => element.tagName === 'INPUT');
+        let debounceTimer;
+        const DEBOUNCE_DELAY = 500;
 
+        const inputElements = this.getInputElements();
         inputElements.forEach(element => {
             element.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => this.saveFormData(), 500);
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => this.saveFormData(), DEBOUNCE_DELAY);
             });
         });
+    }
+
+    getInputElements() {
+        return Object.values(this.formElements)
+            .filter(element => element.tagName === 'INPUT');
     }
 
     setupUnloadHandler() {
@@ -41,46 +66,58 @@ export class SignupAutosave {
     }
 
     saveFormData() {
-        const formData = {
+        const formData = this.collectFormData();
+        authTempStorage.saveSignupForm(formData);
+    }
+
+    collectFormData() {
+        return {
             email: this.formElements.email.value.trim(),
             password: this.formElements.password.value,
             passwordConfirm: this.formElements.passwordConfirm.value,
             nickname: this.formElements.nickname.value.trim(),
             profileImage: this.formElements.profilePreview.src
         };
-        authTempStorage.saveSignupForm(formData);
     }
 
     loadSavedFormData() {
         const savedData = authTempStorage.getSignupForm();
         if (savedData) {
-            // 입력 필드 데이터 복원
-            Object.entries(savedData).forEach(([key, value]) => {
-                if (this.formElements[key] && key !== 'profileImage') {
-                    this.formElements[key].value = value || '';
-                }
-            });
-
-            // 프로필 이미지 복원
-            if (savedData.profileImage) {
-                this.formElements.profilePreview.src = savedData.profileImage;
-                this.formElements.profilePreview.classList.remove('hidden');
-                this.formElements.plusIcon.style.display = 'none';
-            }
-
-            // 유효성 검사 트리거
+            this.restoreFormData(savedData);
             this.triggerValidation();
         }
     }
 
+    restoreFormData(savedData) {
+        this.restoreInputFields(savedData);
+        this.restoreProfileImage(savedData);
+    }
+
+    restoreInputFields(savedData) {
+        Object.entries(savedData).forEach(([key, value]) => {
+            if (this.formElements[key] && key !== 'profileImage') {
+                this.formElements[key].value = value || '';
+            }
+        });
+    }
+
+    restoreProfileImage(savedData) {
+        if (savedData.profileImage) {
+            this.formElements.profilePreview.src = savedData.profileImage;
+            this.formElements.profilePreview.classList.remove('hidden');
+            this.formElements.plusIcon.style.display = 'none';
+        }
+    }
+
     triggerValidation() {
-        Object.entries(this.formElements)
-            .filter(([key]) => key !== 'profilePreview' && key !== 'plusIcon')
-            .forEach(([key, element]) => {
-                if (element.value) {
-                    this.signupPage.validateField(key, element.value);
-                }
-            });
+        const fieldsToValidate = Object.entries(this.formElements)
+            .filter(([key]) => key !== 'profilePreview' && key !== 'plusIcon');
+    
+        fieldsToValidate.forEach(([key, element]) => {
+            if (element.value) {
+                this.validateField(key, element.value);
+            }
+        });
     }
 
     clearSavedData() {
