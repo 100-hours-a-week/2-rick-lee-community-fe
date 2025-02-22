@@ -46,7 +46,7 @@ export class SignupForm {
             uploadBtn: document.getElementById('uploadImage'),
             defaultBtn: document.getElementById('useDefault')
         };
-    
+        
         this.helperTexts = {
             email: document.getElementById('emailHelper'),
             password: document.getElementById('passwordHelper'),
