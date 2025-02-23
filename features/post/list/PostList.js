@@ -11,7 +11,7 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
+}     
 
 // 날짜 포맷팅
 function formatDate(dateString) {

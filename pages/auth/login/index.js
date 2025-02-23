@@ -8,7 +8,7 @@
 // 외부 모듈 import
 import { validateEmail, validatePassword } from '/features/auth/login/model/validation.js';
 import { updateHelperText } from '/features/auth/login/ui/helpers.js';
-import { userApi } from '/entities/user/api/userApi.js';
+import { userApi } from '/entities/user/api/loginApi.js';
 
 /**
  * DOM 요소 선택

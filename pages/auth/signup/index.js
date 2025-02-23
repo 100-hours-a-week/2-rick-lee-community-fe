@@ -53,7 +53,8 @@ export class SignupPage {
                 defaultBtn: document.getElementById('useDefault'),
                 fileInput: document.getElementById('profileImage')
             },
-            signupButton: document.getElementById('signupButton')
+            signupButton: document.getElementById('signupButton'),
+            loginButton: document.getElementById('loginButton')
         };
 
         // 초기 버튼 비활성화
@@ -77,6 +78,11 @@ export class SignupPage {
 
         // 폼 제출 이벤트
         this.elements.form.addEventListener('submit', this.handleSubmit.bind(this));
+
+        // 로그인 버튼 이벤트
+        if (this.elements.loginButton) {
+            this.elements.loginButton.addEventListener('click', this.handleLoginClick.bind(this));
+        }
     }
 
     /**
@@ -243,6 +249,15 @@ export class SignupPage {
 
         // 자동 저장
         signupModel.saveFormData(formData);
+    }
+    /**
+     * 로그인 페이지로 이동
+     * @private
+     * @param {Event} e - 클릭 이벤트 객체
+     */
+    handleLoginClick(e) {
+        e.preventDefault(); // 폼 제출 방지
+        window.location.href = '/pages/auth/login/index.html';
     }
 
     /**
