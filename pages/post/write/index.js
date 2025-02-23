@@ -1,5 +1,5 @@
 // pages/post/write/index.js
-import { postWriteModel } from '/features/post/write/model/postWriteModel.js';
+import { postWriteModel } from '/features/post/write/postWriteModel.js';
 
 class PostWritePage {
     constructor() {
@@ -8,10 +8,10 @@ class PostWritePage {
         this.updateSubmitButton(false);
     }
 
-    /**
-     * DOM 요소 초기화
-     * @private
-     */
+        /**
+         * DOM 요소 초기화
+         * @private
+         */
     initializeElements() {
         return {
             form: document.getElementById('postForm'),

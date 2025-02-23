@@ -58,7 +58,11 @@ textarea {
     border-radius: 4px;
     font-size: 1rem;
 }
-
+.helper-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
 textarea {
     min-height: 200px;
     resize: vertical;

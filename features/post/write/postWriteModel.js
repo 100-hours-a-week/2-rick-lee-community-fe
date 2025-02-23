@@ -1,4 +1,5 @@
 // features/post/write/model/postWriteModel.js
+
 import { postWriteApi } from '/entities/post/api/postWriteApi.js';
 
 /**

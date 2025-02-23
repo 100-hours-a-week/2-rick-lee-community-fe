@@ -4,7 +4,7 @@
  * 사용자 인증 관련 API 통신을 담당하는 클래스
  * 로그인, 로그아웃 및 토큰 관리 기능을 제공
  */
-class UserApi {
+class LoginApi {
     constructor() {
         // API 기본 URL 설정
         this.API_BASE_URL = 'https://api.example.com';
@@ -103,4 +103,4 @@ class UserApi {
 }
 
 // UserApi 클래스의 싱글톤 인스턴스 생성 및 내보내기
-export const userApi = new UserApi();
+export const loginApi = new LoginApi();
