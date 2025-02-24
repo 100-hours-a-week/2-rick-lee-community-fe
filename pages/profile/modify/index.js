@@ -4,6 +4,7 @@ import { profileModifyModel } from '/features/profile/modify/profileModifyModel.
 class ProfileModifyPage {
     constructor() {
         this.elements = this.initializeElements();
+        this.elements.modal.container.style.display = 'none'; //모달의 초기상태 설정
         this.setupEventListeners();
         this.loadUserProfile();
     }

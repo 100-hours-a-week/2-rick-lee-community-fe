@@ -74,6 +74,28 @@ input::placeholder {
     transition: background-color 0.2s ease;
 }
 
-.submit-button:hover {
+.submit-button:hover:not(:disabled) {
+    background-color: #7F6AEE;
+}
+
+.submit-button:disabled {
+    background-color: #d8d0f0;
+    cursor: not-allowed;
+}
+
+
+.submit-button.active {
     background-color: #9785E5;
+}
+
+.submit-button.active:hover {
+    background-color: #7F6AEE;
+}
+
+
+@media (max-width: 768px) {
+    .password-change {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
 }

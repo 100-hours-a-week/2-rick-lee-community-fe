@@ -21,27 +21,28 @@
         <h1 class="title">비밀번호 수정</h1>
         <form class="password-form">
             <div class="input-group">
-                <label for="currentPassword">비밀번호</label>
-                <input 
-                    type="password" 
-                    id="currentPassword" 
-                    placeholder="비밀번호를 입력해주세요."
-                >
-                <span class="helper-text">* 필수 입력</span>
-            </div>
-
-            <div class="input-group">
-                <label for="newPassword">비밀번호 확인</label>
+                <label for="newPassword">비밀번호</label>
                 <input 
                     type="password" 
                     id="newPassword" 
-                    placeholder="비밀번호를 한번 더 입력해주세요."
+                    placeholder="비밀번호를 입력해주세요."
                 >
-                <span class="helper-text">* 필수 입력</span>
+                <span class="helper-text" id="passwordHelper" >* 필수 입력</span>
             </div>
 
-            <button type="submit" class="submit-button">수정하기</button>
+            <div class="input-group">
+                <label for="passwordConfirm">비밀번호 확인</label>
+                <input 
+                    type="password" 
+                    id="passwordConfirm" 
+                    placeholder="비밀번호를 한번 더 입력해주세요."
+                >
+                <span class="helper-text" id="passwordConfirmHelper">* 필수 입력</span>
+            </div>
+
+            <button type="submit" class="submit-button" id = "submitButton">수정하기</button>
         </form>
     </main>
+    <script type="module" src="/pages/profile/changePasswd/index.js"></script>
 </body>
 </html>
