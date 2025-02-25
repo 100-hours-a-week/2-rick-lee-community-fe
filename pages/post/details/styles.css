@@ -153,3 +153,107 @@
 .comment-controls {
     margin-left: 10px;
 }
+
+/* 공통 모달 스타일 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 30px 20px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    text-align: center;
+}
+
+.modal h3 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.modal p {
+    margin: 0 0 24px;
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.4;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* 버튼 스타일 */
+.modal-buttons button {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    max-width: 140px;
+    transition: all 0.2s ease;
+}
+
+/* 취소 버튼 */
+#cancelBtn, #errorModalCloseBtn {
+    background-color: #2c2c2c;
+    color: #fff;
+}
+
+#cancelBtn:hover, #errorModalCloseBtn:hover {
+    background-color: #1a1a1a;
+}
+
+/* 확인 버튼 */
+#confirmBtn {
+    background-color: #D6BFFF;
+    color: #222;
+}
+
+#confirmBtn:hover {
+    background-color: #C4A6FF;
+}
+
+/* 에러 모달 특화 스타일 */
+#errorModal .modal-content {
+    border-top: 4px solid #ff4757;
+}
+
+/* 확인 모달 특화 스타일 */
+#confirmModal .modal-content {
+    border-top: 4px solid #D6BFFF;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 480px) {
+    .modal-content {
+        width: 85%;
+        padding: 24px 16px;
+    }
+    
+    .modal-buttons button {
+        padding: 10px 0;
+        font-size: 0.95rem;
+    }
+}
