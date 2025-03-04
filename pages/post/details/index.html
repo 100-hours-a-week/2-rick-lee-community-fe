@@ -47,18 +47,16 @@
 
             <!-- 게시글 통계 -->
             <div class="post-stats">
-                <div class="stat-item">
-                    <button class="like-button" id="likeButton">
-                        <span class="stat-value" id="likeCount"></span>
+                <div class="stat-item" id = "likeButton">
+                        <span class="stat-value" id="likeCount">0</span>
                         <span class="stat-label">좋아요수</span>
-                    </button>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" id="viewCount"></span>
+                    <span class="stat-value" id="viewCount">0</span>
                     <span class="stat-label">조회수</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" id="commentCount"></span>
+                    <span class="stat-value" id="commentCount">0</span>
                     <span class="stat-label">댓글</span>
                 </div>
             </div>
@@ -78,7 +76,9 @@
             <div class="modal-content">
                 <h3>오류 발생</h3>
                 <p id="errorMessage"></p>
-                <button id="errorModalCloseBtn">확인</button>
+                <div class = "modal-buttons">
+                    <button id="errorModalCloseBtn">확인</button>
+                </div>
             </div>
         </div>
 

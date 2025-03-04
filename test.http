@@ -1,0 +1,77 @@
+@baseUrl = http://localhost:5500
+@contentType = application/json
+
+### 로그인 요청 테스트 - 성공 케이스
+# @name loginSuccess
+POST {{baseUrl}}/users/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+    "email": "test@startupcode.kr",
+    "password": "test1234"
+}
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "message": "login_success",
+    "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        "user_id": 1
+    }
+}
+
+### 로그인 요청 테스트 - 잘못된 요청 형식
+# @name loginBadRequest
+POST {{baseUrl}}/users/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+    "email": "invalid-email",
+    "password": ""
+}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{
+    "message": "invalid_request",
+    "data": null
+}
+
+### 로그인 요청 테스트 - 잘못된 자격 증명
+# @name loginUnauthorized
+POST {{baseUrl}}/users/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+    "email": "wrong@example.com",
+    "password": "wrongpassword"
+}
+
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{
+    "message": "invalid_credentials",
+    "data": null
+}
+
+### 로그인 요청 테스트 - 서버 오류
+# @name loginServerError
+POST {{baseUrl}}/users/login HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+    "email": "server-error@example.com",
+    "password": "trigger-error"
+}
+
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+
+{
+    "message": "internal_server_error",
+    "data": null
+}

@@ -7,7 +7,7 @@
 class LoginApi {
     constructor() {
         // API 기본 URL 설정
-        this.API_BASE_URL = 'https://api.example.com';
+        this.API_BASE_URL = 'http://localhost:5500';
         // 로컬 스토리지에서 사용할 토큰 키 이름
         this.TOKEN_KEY = 'authToken';
     }
