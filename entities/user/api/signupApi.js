@@ -1,64 +1,36 @@
-// features/auth/api/signupApi.js
+import BaseApi from 'entities/BaseApi';
 
-/**
- * 회원가입 API 클래스
- * 회원가입 요청 처리를 담당
- */
-export class SignupApi {
+export class SignupApi extends BaseApi {
     constructor() {
-        this.API_BASE_URL = 'https://api.example.com';
+        super('http://localhost:8080');
     }
 
     /**
-     * 회원가입 요청 처리
+     * 회원가입 요청 처리 메서드
      * @param {Object} userData - 사용자 등록 정보
      * @param {string} userData.email - 이메일
      * @param {string} userData.password - 비밀번호
      * @param {string} userData.nickname - 닉네임
      * @param {string} [userData.profile_image] - 프로필 이미지 URL (선택)
-     * @returns {Promise<Object>} 회원가입 결과
+     * @returns {Promise<Object>} 회원가입 결과 (성공 여부, 메시지, 데이터)
      */
     async register(userData) {
         try {
-            const response = await fetch(`${this.API_BASE_URL}/users/signup`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(userData)
-            });
-
-            const data = await response.json();
-
-            switch (response.status) {
-                case 201:
-                    return {
-                        success: true,
-                        data: data.data,
-                        message: '회원가입이 완료되었습니다.'
-                    };
-                case 400:
-                    return {
-                        success: false,
-                        message: '입력 정보를 확인해주세요.'
-                    };
-                case 500:
-                    return {
-                        success: false,
-                        message: '서버 오류가 발생했습니다.'
-                    };
-                default:
-                    return {
-                        success: false,
-                        message: '알 수 없는 오류가 발생했습니다.'
-                    };
-            }
+        // BaseApi의 공통 request 메서드를 사용하여 API 요청
+        const data = await this.request('/users/signup', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+        return {
+            success: true,
+            data: data.data,
+            message: '회원가입이 완료되었습니다.',
+        };
         } catch (error) {
-            console.error('회원가입 요청 중 오류:', error);
-            return {
-                success: false,
-                message: '네트워크 오류가 발생했습니다.'
-            };
+        return {
+            success: false,
+            message: error.message || '네트워크 오류가 발생했습니다.',
+        };
         }
     }
 }

@@ -1,12 +1,10 @@
-// features/post/detail/model/postDetailModel.js
+// /features/post/detail/model/postDetailModel.js
 import { postDetailApi } from '/entities/post/api/postDetailApi.js';
+import { JwtDecoder } from '/utilities/JwtDecoder.js';
 
-/**
- * 게시글 상세 모델 클래스
- * 게시글 상세 데이터 관리 및 가공
- */
-export class PostDetailModel {
+export class PostDetailModel extends JwtDecoder {
     constructor() {
+        super();
         this.post = null;
         this.comments = [];
         this.currentUserId = this.getCurrentUserId();
@@ -15,28 +13,40 @@ export class PostDetailModel {
     }
 
     /**
-     * 현재 사용자 ID 가져오기
+     * 현재 사용자 ID 가져오기 (JWT 토큰 디코딩 방식)
      * @returns {string|null} 현재 사용자 ID
      */
     getCurrentUserId() {
-        // 실제 구현에서는 JWT 디코딩 또는 localStorage에서 사용자 ID 가져오기
-        // 예시 코드이므로 임의로 구현
-        const userData = localStorage.getItem('user');
-        return userData ? JSON.parse(userData).id : null;
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            console.warn('JWT 토큰이 존재하지 않습니다.');
+            return null;
+        }
+        try {
+            const payload = this.parseJwt(token);
+            // payload 내의 사용자 식별자 필드는 시스템에 따라 달라질 수 있음
+            return payload?.id || null;
+        } catch (error) {
+            console.error('JWT 토큰 파싱 오류:', error);
+            return null;
+        }
     }
 
     /**
-     * 게시글 상세 정보 로드
+     * 게시글 상세 정보 로드 및 조회수 증가 (비동기)
      * @param {string} postId - 게시글 ID
      * @returns {Promise<Object>} 처리 결과
      */
     async loadPostDetail(postId) {
         try {
             const result = await postDetailApi.getPostDetail(postId);
-            
             if (result.success) {
                 this.post = result.data;
                 this.isLiked = result.data.isLiked;
+                // 조회수 증가를 별도의 비동기 요청으로 수행 (fire-and-forget)
+                postDetailApi.increaseViewCount(postId).catch(err => {
+                    console.error('조회수 업데이트 실패:', err);
+                });
                 return { success: true, data: this.post };
             } else {
                 return { success: false, message: result.message };
@@ -55,7 +65,6 @@ export class PostDetailModel {
     async loadComments(postId) {
         try {
             const result = await postDetailApi.getComments(postId);
-            
             if (result.success) {
                 this.comments = result.data;
                 return { success: true, data: this.comments };
@@ -69,7 +78,7 @@ export class PostDetailModel {
     }
 
     /**
-     * 댓글 작성
+     * 댓글 작성 후 목록 갱신
      * @param {string} postId - 게시글 ID
      * @param {string} content - 댓글 내용
      * @returns {Promise<Object>} 처리 결과
@@ -77,9 +86,7 @@ export class PostDetailModel {
     async createComment(postId, content) {
         try {
             const result = await postDetailApi.createComment(postId, content);
-            
             if (result.success) {
-                // 댓글 목록 다시 로드
                 await this.loadComments(postId);
                 return { success: true };
             } else {
@@ -92,7 +99,7 @@ export class PostDetailModel {
     }
 
     /**
-     * 댓글 수정
+     * 댓글 수정 후 목록 갱신
      * @param {string} postId - 게시글 ID
      * @param {string} commentId - 댓글 ID
      * @param {string} content - 수정할 내용
@@ -101,9 +108,7 @@ export class PostDetailModel {
     async updateComment(postId, commentId, content) {
         try {
             const result = await postDetailApi.updateComment(postId, commentId, content);
-            
             if (result.success) {
-                // 댓글 목록 다시 로드
                 await this.loadComments(postId);
                 this.editingCommentId = null;
                 return { success: true };
@@ -117,7 +122,7 @@ export class PostDetailModel {
     }
 
     /**
-     * 댓글 삭제
+     * 댓글 삭제 후 목록 갱신
      * @param {string} postId - 게시글 ID
      * @param {string} commentId - 댓글 ID
      * @returns {Promise<Object>} 처리 결과
@@ -125,9 +130,7 @@ export class PostDetailModel {
     async deleteComment(postId, commentId) {
         try {
             const result = await postDetailApi.deleteComment(postId, commentId);
-            
             if (result.success) {
-                // 댓글 목록 다시 로드
                 await this.loadComments(postId);
                 return { success: true };
             } else {
@@ -147,7 +150,6 @@ export class PostDetailModel {
     async deletePost(postId) {
         try {
             const result = await postDetailApi.deletePost(postId);
-            
             if (result.success) {
                 return { success: true };
             } else {
@@ -160,7 +162,7 @@ export class PostDetailModel {
     }
 
     /**
-     * 좋아요 상태 토글
+     * 좋아요 상태 토글 및 카운트 업데이트
      * @param {string} postId - 게시글 ID
      * @returns {Promise<Object>} 처리 결과
      */
@@ -168,16 +170,12 @@ export class PostDetailModel {
         try {
             const newLikeState = !this.isLiked;
             const result = await postDetailApi.toggleLike(postId, newLikeState);
-            
             if (result.success) {
                 this.isLiked = newLikeState;
-                // 좋아요 수 업데이트
-                if (newLikeState) {
-                    this.post.likeCount++;
-                } else {
-                    this.post.likeCount--;
+                if (this.post && typeof this.post.likeCount === 'number') {
+                    this.post.likeCount = newLikeState ? this.post.likeCount + 1 : this.post.likeCount - 1;
                 }
-                return { success: true, isLiked: this.isLiked, likeCount: this.post.likeCount };
+                return { success: true, isLiked: this.isLiked, likeCount: this.post?.likeCount };
             } else {
                 return { success: false, message: result.message };
             }
@@ -193,7 +191,7 @@ export class PostDetailModel {
      */
     canEditPost() {
         if (!this.post || !this.currentUserId) return false;
-        return this.post.author.id === this.currentUserId;
+        return this.post.author?.id === this.currentUserId;
     }
 
     /**
@@ -212,8 +210,7 @@ export class PostDetailModel {
      * @returns {string} 포맷팅된 문자열
      */
     formatNumber(value) {
-        if (!value && value !== 0) return '0';
-        
+        if (value === null || value === undefined) return '0';
         if (value >= 100000) {
             return `${Math.floor(value / 1000)}k`;
         } else if (value >= 10000) {
@@ -221,7 +218,6 @@ export class PostDetailModel {
         } else if (value >= 1000) {
             return `${Math.floor(value / 1000)}k`;
         }
-        
         return value.toString();
     }
 
@@ -232,7 +228,6 @@ export class PostDetailModel {
      */
     formatDate(dateString) {
         if (!dateString) return '';
-        
         const date = new Date(dateString);
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     }
@@ -244,7 +239,6 @@ export class PostDetailModel {
      */
     escapeHtml(text) {
         if (!text) return '';
-        
         const map = {
             '&': '&amp;',
             '<': '&lt;',
@@ -252,8 +246,7 @@ export class PostDetailModel {
             '"': '&quot;',
             "'": '&#039;'
         };
-        
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        return text.replace(/[&<>"']/g, m => map[m]);
     }
 }
 
