@@ -1,107 +1,224 @@
 /**
- * 프로필 이미지 관리 모듈
- * @module profileImageManager
+ * 이미지 처리 관련 유틸리티 함수
+ * @module imageProcessing
  */
-import { ImageDOM } from './imageDOM.js';
-import { ImageState } from '../model/imageState.js';
-import { ImageError } from '/utilities/image/imageConfig.js';
+import { IMAGE_CONFIG, ImageError } from './imageConfig.js';
 
 /**
- * 프로필 이미지 관리 클래스
- * UI 계층의 컨트롤러로, DOM과 상태 간의 중개자 역할
+ * 이미지 처리 유틸리티 클래스
+ * 모든 이미지 관련 변환, 검증, 처리 기능을 집중화
  */
-export class ProfileImageManager {
+export class ImageProcessing {
     /**
-     * @param {Object} options - 초기화 옵션
-     * @param {Function} options.onChange - 이미지 변경 시 호출될 콜백
-     * @param {Function} options.onError - 오류 발생 시 호출될 콜백
-     * @param {Object} options.domSelectors - DOM 요소 선택자 (옵션)
+     * 이미지 파일 유효성 검사
+     * @param {File|null} file - 검사할 이미지 파일
+     * @returns {Object} 검사 결과 {isValid: boolean, message: string}
      */
-    constructor(options = {}) {
-        // 콜백 검증
-        if (!options.onChange) {
-            console.warn('onChange 콜백이 제공되지 않았습니다.');
+    static validateImage(file) {
+        // 파일이 없는 경우 (선택 사항으로 간주)
+        if (!file) {
+            return { isValid: true, message: '' };
         }
-        
-        // 이벤트 콜백
-        this.callbacks = {
-            onChange: options.onChange || (() => {}),
-            onError: options.onError || console.error
-        };
-        
-        // 상태 및 DOM 초기화
-        this.dom = new ImageDOM({ selectors: options.domSelectors });
-        this.state = new ImageState({ 
-            onChange: this._handleStateChange.bind(this) 
+
+        // 파일 크기 검사
+        if (file.size > IMAGE_CONFIG.MAX_SIZE) {
+            return { 
+                isValid: false, 
+                message: IMAGE_ERROR_CODES.FILE_TOO_LARGE 
+            };
+        }
+
+        // 파일 타입 검사
+        if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(file.type)) {
+            return { 
+                isValid: false, 
+                message: IMAGE_ERROR_CODES.INVALID_TYPE 
+            };
+        }
+
+        return { isValid: true, message: '' };
+    }
+
+    /**
+     * 파일을 Data URL로 변환
+     * @param {File} file - 변환할 파일
+     * @returns {Promise<string>} Data URL 형식의 이미지 데이터
+     * @throws {ImageError} 파일 읽기 실패 시
+     */
+    static readFileAsDataURL(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new ImageError('NO_FILE'));
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new ImageError('READ_ERROR'));
+            reader.readAsDataURL(file);
         });
-        
-        // 이벤트 핸들러 등록
-        this._setupEventHandlers();
     }
 
     /**
-     * 이벤트 핸들러 설정
-     * @private
+     * 이미지 크기 조정 및 압축
+     * @param {string} dataURL - 원본 이미지의 Data URL
+     * @param {Object} options - 크기 조정 옵션
+     * @param {number} options.maxWidth - 최대 너비 (기본값: CONFIG에서 지정)
+     * @param {number} options.maxHeight - 최대 높이 (기본값: CONFIG에서 지정)
+     * @param {number} options.quality - JPEG 품질 (0-1, 기본값: CONFIG에서 지정)
+     * @returns {Promise<string>} 조정된 이미지의 Data URL
+     * @throws {ImageError} 이미지 처리 실패 시
      */
-    _setupEventHandlers() {
-        // 이벤트 핸들러 객체 생성
-        this.handlers = {
-            containerClick: () => this.dom.toggleDropdown(),
-            fileChange: (file) => this._handleFileSelect(file),
-            uploadClick: () => {
-                this.dom.triggerFileInput();
-                this.dom.hideDropdown();
-            },
-            defaultClick: () => {
-                this.state.resetToDefault();
-                this.dom.hideDropdown();
-            },
-            documentClick: () => this.dom.hideDropdown()
-        };
+    static resizeImage(dataURL, options = {}) {
+        const { 
+            maxWidth = IMAGE_CONFIG.THUMBNAIL.MAX_WIDTH, 
+            maxHeight = IMAGE_CONFIG.THUMBNAIL.MAX_HEIGHT, 
+            quality = IMAGE_CONFIG.THUMBNAIL.QUALITY 
+        } = options;
         
-        // DOM에 이벤트 리스너 등록
-        this.dom.setupEventListeners(this.handlers);
-    }
-
-    /**
-     * 파일 선택 처리
-     * @private
-     * @param {File} file - 선택된 이미지 파일
-     */
-    async _handleFileSelect(file) {
-        try {
-            // 파일이 없으면 무시
-            if (!file) return;
-            
-            // UI 상태 업데이트
-            this.dom.setLoading(true);
-            this.dom.showError(null);
-            
-            // 이미지 상태 업데이트 (처리 포함)
-            await this.state.updateWithFile(file);
-            
-        } catch (error) {
-            // 오류 메시지 표시
-            const message = error instanceof ImageError 
-                ? error.message 
-                : '이미지 처리 중 오류가 발생했습니다.';
+        return new Promise((resolve, reject) => {
+            try {
+                // 이미지 객체 생성
+                const img = new Image();
+                img.onload = () => {
+                    // 비율 유지하면서 크기 조정
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // 가로/세로 비율 계산
+                    const ratio = Math.min(
+                        maxWidth / width,
+                        maxHeight / height
+                    );
+                    
+                    // 이미지가 최대 크기보다 작으면 크기 조정 안함
+                    if (width <= maxWidth && height <= maxHeight) {
+                        resolve(dataURL);
+                        return;
+                    }
+                    
+                    // 새 크기 계산
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                    
+                    // Canvas에 이미지 그리기
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 조정된 이미지를 JPEG 형식의 Data URL로 변환
+                    const resizedDataURL = canvas.toDataURL('image/jpeg', quality);
+                    resolve(resizedDataURL);
+                };
                 
-            this.dom.showError(message);
-            this.callbacks.onError(message);
+                img.onerror = () => {
+                    reject(new ImageError('PROCESSING_ERROR'));
+                };
+                
+                img.src = dataURL;
+            } catch (error) {
+                reject(new ImageError('PROCESSING_ERROR'));
+            }
+        });
+    }
+
+    /**
+     * Data URL을 File 객체로 변환
+     * @param {string} dataURL - 변환할 Data URL
+     * @param {string} fileName - 생성할 파일 이름 (기본값: 'profile.jpg')
+     * @param {string} fileType - 파일 MIME 타입 (기본값: 'image/jpeg')
+     * @returns {File} 변환된 File 객체
+     * @throws {ImageError} 변환 실패 시
+     */
+    static dataURLtoFile(dataURL, fileName = 'profile.jpg', fileType = 'image/jpeg') {
+        try {
+            // Data URL 형식 검증
+            if (!dataURL || typeof dataURL !== 'string' || !dataURL.startsWith('data:')) {
+                throw new Error('유효하지 않은 Data URL입니다.');
+            }
+
+            // Data URL에서 Base64 데이터 추출
+            const arr = dataURL.split(',');
+            const mime = arr[0].match(/:(.*?);/)?.[1] || fileType;
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
             
-        } finally {
-            // 로딩 상태 해제
-            this.dom.setLoading(false);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            
+            // File 객체 생성 및 반환
+            return new File([u8arr], fileName, { type: mime });
+        } catch (error) {
+            console.error('이미지 변환 중 오류:', error);
+            throw new ImageError('CONVERSION_ERROR');
         }
     }
 
     /**
-     * 상태 변경 처리
-     * @private
-     * @param {Object} state - 변경된 상태
+     * 이미지 처리 파이프라인 - 파일 입력, 처리, 변환을 한번에 처리
+     * @param {File} file - 처리할 이미지 파일
+     * @param {Object} options - 처리 옵션
+     * @returns {Promise<Object>} 처리된 이미지 정보 (dataURL, file 객체)
+     * @throws {ImageError} 처리 과정 중 오류 발생 시
      */
-    _handleStateChange(state) {
-        // 로딩 상태 업데이트
-        this.dom.setLoading(state.isProcessing);
+    static async processImageFile(file, options = {}) {
+        try {
+            // 1. 유효성 검사
+            const validation = this.validateImage(file);
+            if (!validation.isValid) {
+                throw new ImageError(validation.message);
+            }
+
+            // 2. Data URL로 변환
+            const dataURL = await this.readFileAsDataURL(file);
+            
+            // 3. 필요시 리사이징
+            const resizedDataURL = options.resize !== false ? 
+                await this.resizeImage(dataURL, options) : dataURL;
+            
+            // 4. File 객체로 변환 (API 전송용)
+            const imageFile = this.dataURLtoFile(
+                resizedDataURL, 
+                options.fileName || file.name || 'profile.jpg',
+                file.type || 'image/jpeg'
+            );
+            
+            // 처리 결과 반환
+            return {
+                original: {
+                    file,
+                    dataURL
+                },
+                processed: {
+                    file: imageFile,
+                    dataURL: resizedDataURL
+                }
+            };
+        } catch (error) {
+            if (error instanceof ImageError) {
+                throw error;
+            }
+            console.error('이미지 처리 중 오류:', error);
+            throw new ImageError('PROCESSING_ERROR');
+        }
+    }
+
+    /**
+     * 이미지가 기본 이미지인지 확인
+     * @param {string} imagePath - 확인할 이미지 경로 또는 Data URL
+     * @returns {boolean} 기본 이미지 여부
+     */
+    static isDefaultImage(imagePath) {
+        if (!imagePath) return true;
         
-        // 오
+        // 기본 이미지 경로가 포함되어 있는지 확인
+        const defaultPath = IMAGE_CONFIG.DEFAULT_PATH;
+        return imagePath.includes(defaultPath) || 
+               imagePath === defaultPath;
+    }
+}
