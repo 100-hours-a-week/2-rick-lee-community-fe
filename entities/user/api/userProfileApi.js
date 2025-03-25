@@ -1,6 +1,9 @@
-import BaseApi from '/entities/BaseApi';
+import BaseApi from '/utilities/api/BaseApi';
 
-export class ProfileModifyApi extends BaseApi {
+/**
+ * 사용자 프로필 관리 API 클래스
+ */
+export class ProfileApi extends BaseApi {
     constructor() {
         super('http://localhost:8080');
     }
@@ -8,43 +11,35 @@ export class ProfileModifyApi extends BaseApi {
     /**
      * 프로필 정보 수정 요청 처리
      * @param {Object} profileData - 수정할 프로필 정보
-     * @param {string} profileData.nickname - 닉네임
-     * @param {File} [profileData.profile_image] - 프로필 이미지 파일 (선택)
+     * @param {string} profileData.username - 사용자명
+     * @param {string} profileData.email - 이메일
      * @returns {Promise<Object>} 수정 결과 (성공 여부, 메시지, 데이터)
      */
     async updateProfile(profileData) {
-        // 토큰 유무 확인
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-        return { success: false, message: '로그인이 필요합니다.' };
-        }
+        return this.authRequest(
+            async () => {
+                const userId = this.getUserId();
+                const response = await this.request(`/users/${userId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        username: profileData.username,
+                        email: profileData.email
+                    }),
+                });
 
-        // FormData 생성 (파일 업로드이므로 JSON 헤더는 제거)
-        const formData = new FormData();
-        formData.append('nickname', profileData.nickname);
-        if (profileData.profile_image) {
-        formData.append('profile_image', profileData.profile_image);
-        }
+                // 사용자명이 변경된 경우 로컬 스토리지 업데이트
+                if (profileData.username !== this.getUsername()) {
+                    localStorage.setItem(this.USERNAME_KEY, profileData.username);
+                }
 
-        try {
-        // BaseApi의 request 메서드를 사용할 때, body가 FormData인 경우
-        // Content-Type 헤더는 자동으로 처리되므로 헤더 옵션은 빈 객체로 전달합니다.
-        const data = await this.request('/users', {
-            method: 'PUT',
-            body: formData,
-            headers: {} // FormData 사용 시 'Content-Type' 헤더는 생략
-        });
-        return {
-            success: true,
-            data: data.data,
-            message: '프로필이 수정되었습니다.'
-        };
-        } catch (error) {
-        return {
-            success: false,
-            message: error.message || '네트워크 오류가 발생했습니다.'
-        };
-        }
+                return this.formatResponse(
+                    response,
+                    'user_updated',
+                    '프로필이 성공적으로 수정되었습니다.'
+                );
+            },
+            '프로필 수정 중 오류가 발생했습니다.'
+        );
     }
 
     /**
@@ -52,28 +47,28 @@ export class ProfileModifyApi extends BaseApi {
      * @returns {Promise<Object>} 탈퇴 처리 결과 (성공 여부, 메시지)
      */
     async deleteAccount() {
-        // 토큰 유무 확인
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-        return { success: false, message: '로그인이 필요합니다.' };
-        }
+        return this.authRequest(
+            async () => {
+                const response = await this.request('/users', {
+                    method: 'DELETE'
+                });
 
-        try {
-        // DELETE 요청은 JSON 형식이므로 BaseApi의 기본 헤더를 그대로 사용
-        await this.request('/users', {
-            method: 'DELETE'
-        });
-        return {
-            success: true,
-            message: '회원 탈퇴가 완료되었습니다.'
-        };
-        } catch (error) {
-        return {
-            success: false,
-            message: error.message || '네트워크 오류가 발생했습니다.'
-        };
-        }
+                // 회원 탈퇴 성공 시 사용자 정보 삭제
+                if (response.message === 'user_deleted') {
+                    localStorage.removeItem(this.TOKEN_KEY);
+                    localStorage.removeItem(this.USER_ID_KEY);
+                    localStorage.removeItem(this.USERNAME_KEY);
+                }
+
+                return this.formatResponse(
+                    response,
+                    'user_deleted',
+                    '회원 탈퇴가 완료되었습니다.'
+                );
+            },
+            '회원 탈퇴 중 오류가 발생했습니다.'
+        );
     }
 }
 
-export const profileModifyApi = new ProfileModifyApi();
+export const profileApi = new ProfileApi();

@@ -1,5 +1,8 @@
-import BaseApi from '/entities/BaseApi';
+import BaseApi from '/utilities/api/BaseApi';
 
+/**
+ * 게시글 상세 정보 관련 API 클래스
+ */
 export class PostDetailApi extends BaseApi {
     constructor() {
         super('http://localhost:8080');
@@ -9,77 +12,74 @@ export class PostDetailApi extends BaseApi {
 
     /**
      * 게시글 상세 정보 조회 API 요청
-     * @param {string} postId - 게시글 ID
+     * @param {string|number} postId - 게시글 ID
      * @returns {Promise<Object>} 게시글 상세 정보 결과 (성공 여부, 메시지, 데이터)
      */
     async getPostDetail(postId) {
-        try {
-            // 조회수 증가를 위한 비동기 요청 (fire-and-forget)
-            this.increaseViewCount(postId).catch(err => console.error('조회수 증가 실패:', err));
-
-            // 게시글 상세 정보 조회 요청
-            const data = await this.request(`${this.API_ENDPOINT}/${postId}`, {
-                method: 'GET',
-            });
-            return {
-                success: true,
-                data: data.data,
-            };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message || '게시글을 불러오는데 실패했습니다.',
-                data: null,
-            };
-        }
-    }
-
-    /**
-     * 게시글 조회수 증가 API 요청
-     * @param {string} postId - 게시글 ID
-     * @returns {Promise<Object>} 응답 결과 (성공 여부, 메시지, 데이터)
-     */
-    async increaseViewCount(postId) {
-        try {
-            // 별도의 엔드포인트로 조회수 증가 요청 (예: /posts/{postId}/view)
-            const data = await this.request(`${this.API_ENDPOINT}/${postId}/view`, {
-                method: 'POST',
-            });
-            return {
-                success: true,
-                data: data.data,
-            };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message || '조회수 증가 실패',
-                data: null,
-            };
-        }
+        return this.authRequest(
+            async () => {
+                const response = await this.request(`${this.API_ENDPOINT}/${postId}`, {
+                    method: 'GET'
+                });
+                
+                return this.formatResponse(
+                    response,
+                    'post_fetched',
+                    '게시글을 성공적으로 불러왔습니다.'
+                );
+            },
+            '게시글을 불러오는데 실패했습니다.'
+        );
     }
 
     /**
      * 게시글 댓글 목록 조회 API 요청
-     * @param {string} postId - 게시글 ID
+     * @param {string|number} postId - 게시글 ID
      * @returns {Promise<Object>} 댓글 목록 결과 (성공 여부, 메시지, 데이터)
      */
     async getComments(postId) {
-        try {
-            // 댓글 조회 요청 (GET)
-            const data = await this.request(`${this.API_ENDPOINT}/${postId}/comments`, {
-                method: 'GET',
-            });
-            return {
-                success: true,
-                data: data.data,
-            };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message || '댓글을 불러오는데 실패했습니다.',
-                data: null,
-            };
-        }
+        return this.authRequest(
+            async () => {
+                const response = await this.request(`${this.API_ENDPOINT}/${postId}/comments`, {
+                    method: 'GET'
+                });
+                
+                return this.formatResponse(
+                    response,
+                    'comments_retrieved',
+                    '댓글을 성공적으로 불러왔습니다.'
+                );
+            },
+            '댓글을 불러오는데 실패했습니다.'
+        );
+    }
+
+    /**
+     * 게시글 좋아요 추가/취소 요청
+     * @param {string|number} postId - 게시글 ID
+     * @param {boolean} isLiked - 현재 좋아요 상태 (true: 좋아요 취소, false: 좋아요 추가)
+     * @returns {Promise<Object>} 좋아요 처리 결과 (성공 여부, 메시지, 데이터)
+     */
+    async toggleLike(postId, isLiked) {
+        return this.authRequest(
+            async () => {
+                // 현재 좋아요 상태에 따라 HTTP 메서드 결정 (true면 DELETE, false면 POST)
+                const method = isLiked ? 'DELETE' : 'POST';
+                const response = await this.request(`${this.API_ENDPOINT}/${postId}/like`, {
+                    method
+                });
+                
+                const expectedMessage = isLiked ? 'like_removed' : 'like_created';
+                const successMessage = isLiked ? '좋아요가 취소되었습니다.' : '좋아요가 추가되었습니다.';
+                
+                return this.formatResponse(
+                    response,
+                    expectedMessage,
+                    successMessage
+                );
+            },
+            '좋아요 처리 중 오류가 발생했습니다.'
+        );
     }
 }
 

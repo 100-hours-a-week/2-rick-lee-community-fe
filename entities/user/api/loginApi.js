@@ -1,4 +1,4 @@
-import BaseApi from '/entities/BaseApi';
+import BaseApi from '/utilities/api/BaseApi';
 
 /**
  * 사용자 인증 관련 API 클래스 (로그인, 로그아웃 및 토큰 관리)
@@ -6,8 +6,6 @@ import BaseApi from '/entities/BaseApi';
 class LoginApi extends BaseApi {
   constructor() {
     super('http://localhost:8080');
-    // 로컬 스토리지에서 사용할 토큰 키 이름
-    this.TOKEN_KEY = 'authToken';
   }
 
   /**
@@ -18,44 +16,49 @@ class LoginApi extends BaseApi {
    */
   async login(email, password) {
     try {
-      const data = await this.request('/users/login', {
+      // 로그인은 인증이 필요없는 요청
+      const response = await this.request('/users/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
-      });
+      }, false); // false = 인증 불필요
 
-      // 로그인 성공 시 토큰 저장 (응답 데이터의 구조에 따라 변경 가능)
-      if (data.token) {
-        localStorage.setItem(this.TOKEN_KEY, data.token);
-      }
-
-      return { success: true, data };
+      // API 명세서에 따른 응답 구조 처리
+      return this.formatResponse(
+        response,
+        'login_success',
+        '로그인에 성공했습니다.'
+      );
     } catch (error) {
-      console.error('로그인 중 오류:', error);
-      return { success: false, message: error.message || '로그인 처리 중 오류가 발생했습니다.' };
+      return this.handleError(error, '로그인 처리 중 오류가 발생했습니다.');
     }
   }
 
   /**
-   * 사용자 로그아웃 처리 (토큰 삭제)
+   * 사용자 로그아웃 처리 - 로컬 스토리지의 사용자 정보 삭제
    */
   logout() {
     localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_ID_KEY);
+    localStorage.removeItem(this.USERNAME_KEY);
   }
 
   /**
-   * 저장된 인증 토큰을 반환
-   * @returns {string|null} 저장된 토큰 또는 null
+   * 로그인 성공 시 사용자 정보 저장
+   * @param {Object} userData - 사용자 정보
+   * @param {string} userData.token - 인증 토큰
+   * @param {number|string} userData.user_id - 사용자 ID
+   * @param {string} userData.username - 사용자명
    */
-  getToken() {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  /**
-   * 사용자의 로그인 상태 확인
-   * @returns {boolean} 로그인 여부
-   */
-  isLoggedIn() {
-    return !!this.getToken();
+  saveUserData(userData) {
+    if (userData.token) {
+      localStorage.setItem(this.TOKEN_KEY, userData.token);
+    }
+    if (userData.user_id) {
+      localStorage.setItem(this.USER_ID_KEY, userData.user_id);
+    }
+    if (userData.username) {
+      localStorage.setItem(this.USERNAME_KEY, userData.username);
+    }
   }
 }
 
