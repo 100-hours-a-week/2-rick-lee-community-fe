@@ -1,4 +1,4 @@
-import BaseApi from '/utilities/api/BaseApi';
+import BaseApi from '/utilities/api/baseApi.js';
 
 /**
  * 사용자 프로필 관리 API 클래스

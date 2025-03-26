@@ -1,4 +1,4 @@
-import BaseApi from '/utilities/api/BaseApi';
+import BaseApi from '/utilities/api/baseApi.js';
 
 /**
  * 비밀번호 변경 관련 API 클래스

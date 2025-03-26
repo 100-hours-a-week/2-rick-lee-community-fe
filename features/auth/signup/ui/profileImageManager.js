@@ -129,11 +129,36 @@ export class ProfileImageManager {
      * @returns {Object} 현재 이미지 정보 (file, dataURL, isDefault)
      */
     getCurrentImageData() {
-        const state = this.state.getState();
+        // 상태 객체가 없거나 예상 구조가 아닌 경우 기본값 반환
+        if (!this.state) {
+            console.warn('이미지 상태가 초기화되지 않았습니다.');
+            return {
+                file: null,
+                dataURL: null,
+                isDefault: true
+            };
+        }
+        
+        // ImageState 클래스가 수정된 경우에 따라 적절한 방법 사용
+        // 방법 1: state 객체가 직접 상태 정보를 가지고 있는 경우
+        if (typeof this.state.dataURL !== 'undefined') {
+            return {
+                file: this.state.file,
+                dataURL: this.state.dataURL,
+                isDefault: this.state.isDefault
+            };
+        }
+        
+        // 방법 2: 새로운 getState 메서드 사용 (있는 경우)
+        if (typeof this.state.getState === 'function') {
+            return this.state.getState();
+        }
+        
+        // 기본 폴백: 기본 이미지로 간주
         return {
-            file: state.file,
-            dataURL: state.dataURL,
-            isDefault: state.isDefault
+            file: null,
+            dataURL: null,
+            isDefault: true
         };
     }
 

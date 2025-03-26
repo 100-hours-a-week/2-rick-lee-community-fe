@@ -1,4 +1,4 @@
-import BaseApi from '/utilities/api/BaseApi';
+import BaseApi from '/utilities/api/baseApi.js';
 
 /**
  * 게시글 상세 정보 관련 API 클래스

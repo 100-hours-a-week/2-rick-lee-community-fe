@@ -1,4 +1,7 @@
-// features/auth/signup/model/validation.js
+/**
+ * 회원가입 유효성 검사 규칙 및 메시지
+ * @module validation
+ */
 
 /**
  * 회원가입 유효성 검사 규칙 및 메시지
@@ -20,10 +23,10 @@ export const VALIDATION_RULES = {
         required: '비밀번호를 한 번 더 입력해주세요.',
         mismatch: '비밀번호가 일치하지 않습니다.'
     },
-    username: {
-        required: '사용자명을 입력해주세요.',
+    nickname: {
+        required: '닉네임을 입력해주세요.',
         pattern: /^[^\s]{1,20}$/,
-        invalid: '사용자명은 최대 20자까지 작성 가능하며, 띄어쓰기는 불가능합니다.',
-        duplicate: '이미 사용중인 사용자명입니다.'
+        invalid: '닉네임은 최대 20자까지 작성 가능하며, 띄어쓰기는 불가능합니다.',
+        duplicate: '이미 사용중인 닉네임입니다.'
     }
 };

@@ -73,6 +73,9 @@ export class SignupPage {
                 const result = signupModel.validateField(field, input.value, formData);
                 this.updateHelperText(field, result);
                 this.updateButtonState(this.isFormValid());
+                
+                // 폼 데이터가 변경될 때마다 자동 저장
+                this.saveFormData();
             });
         });
 
@@ -90,15 +93,34 @@ export class SignupPage {
      * @private
      */
     setupAutoSave() {
-        let timer;
-        Object.values(this.elements.inputs).forEach(input => {
-            input.addEventListener('input', () => {
-                clearTimeout(timer);
-                timer = setTimeout(() => {
-                    signupModel.saveFormData(this.getFormData());
-                }, 500);
-            });
+        // 디바운스 타이머 초기화
+        this.saveTimer = null;
+
+        // 페이지 이탈 시 자동 저장
+        window.addEventListener('beforeunload', () => {
+            this.saveFormData(true); // 즉시 저장 (디바운스 없이)
         });
+    }
+
+    /**
+     * 폼 데이터 저장
+     * @private
+     * @param {boolean} immediate - 즉시 저장 여부
+     */
+    saveFormData(immediate = false) {
+        // 이미 예약된 저장 취소
+        clearTimeout(this.saveTimer);
+
+        const saveAction = () => {
+            const formData = this.getFormData();
+            signupModel.saveFormData(formData);
+        };
+
+        if (immediate) {
+            saveAction();
+        } else {
+            this.saveTimer = setTimeout(saveAction, 500);
+        }
     }
 
     /**
@@ -107,26 +129,24 @@ export class SignupPage {
      */
     loadSavedData() {
         const savedData = signupModel.getSavedFormData();
-        if (savedData) {
-            // 기존 입력 필드 데이터 복원
-            Object.entries(savedData).forEach(([field, value]) => {
-                if (this.elements.inputs[field]) {
-                    this.elements.inputs[field].value = value || '';
-                }
-            });
+        if (!savedData) return;
 
-            // 프로필 이미지 데이터 복원
-            if (savedData.profile_image) {
-                this.profileManager.getCurrentImage(
-                    savedData.profile_image,
-                    savedData.is_default_profile
-                );
+        // 기존 입력 필드 데이터 복원
+        Object.entries(this.elements.inputs).forEach(([field, input]) => {
+            if (savedData[field]) {
+                input.value = savedData[field];
             }
+        });
 
-            this.updateButtonState(this.isFormValid());
+        // 프로필 이미지 데이터 복원
+        if (savedData.profileImageURL && this.profileManager) {
+            // 이미지 URL로 프로필 이미지 초기화
+            this.profileManager.initializeWithSavedData(savedData.profileImageURL);
         }
-    }
 
+        // 입력 상태에 따라 버튼 활성화 상태 업데이트
+        this.updateButtonState(this.isFormValid());
+    }
 
     /**
      * 회원가입 처리
@@ -135,16 +155,27 @@ export class SignupPage {
      */
     async handleSubmit(e) {
         e.preventDefault();
-        const formData = this.getFormData();
-        const result = await signupModel.signup(formData);
+        
+        // 제출 버튼 비활성화 (중복 제출 방지)
+        this.elements.signupButton.disabled = true;
+        
+        try {
+            const formData = this.getFormData();
+            const result = await signupModel.signup(formData);
 
-        if (result.success) {
-            this.profileManager.destroy(); // 프로필 이미지 매니저 정리
-            signupModel.clearSavedData();
-            alert(result.message);
-            window.location.href = '/pages/auth/login/index.html';
-        } else {
-            this.showError(result.field, result.message);
+            if (result.success) {
+                this.profileManager.dispose(); // 프로필 이미지 매니저 정리
+                signupModel.clearSavedData();
+                alert(result.message || '회원가입이 완료되었습니다.');
+                window.location.href = '/pages/auth/login/index.html';
+            } else {
+                this.showError(result.field, result.message);
+                this.elements.signupButton.disabled = false; // 오류 시 버튼 다시 활성화
+            }
+        } catch (error) {
+            console.error('회원가입 처리 중 오류:', error);
+            alert('회원가입 처리 중 오류가 발생했습니다.');
+            this.elements.signupButton.disabled = false; // 오류 시 버튼 다시 활성화
         }
     }
 
@@ -154,6 +185,7 @@ export class SignupPage {
      * @returns {Object} 폼 데이터
      */
     getFormData() {
+        // 기본 입력 필드 데이터 수집
         const formData = Object.entries(this.elements.inputs).reduce((acc, [field, input]) => {
             acc[field] = input.value.trim();
             return acc;
@@ -161,8 +193,22 @@ export class SignupPage {
 
         // 프로필 이미지 데이터 추가
         if (this.profileManager) {
-            formData.profile_image = this.profileManager.getCurrentImage();
-            formData.is_default_profile = this.profileManager.isDefaultImage();
+            try {
+                const imageData = this.profileManager.getCurrentImageData(); // 변경된 메서드명 사용
+                if (imageData) {
+                    formData.profileImage = {
+                        file: imageData.file,
+                        dataURL: imageData.dataURL,
+                        isDefault: imageData.isDefault
+                    };
+                    
+                    // 이전 코드와의 호환성을 위해 추가
+                    formData.profileImageURL = imageData.dataURL;
+                }
+            } catch (error) {
+                console.error('이미지 데이터 가져오기 오류:', error);
+                // 오류 시 이미지 데이터 없이 진행
+            }
         }
 
         return formData;
@@ -199,8 +245,11 @@ export class SignupPage {
      */
     updateButtonState(isValid) {
         const button = this.elements.signupButton;
-        button.classList.remove('signup-button-active', 'signup-button-disabled');
-        button.classList.add(isValid ? 'signup-button-active' : 'signup-button-disabled');
+        if (!button) return;
+        
+        button.disabled = !isValid;
+        button.classList.toggle('signup-button-active', isValid);
+        button.classList.toggle('signup-button-disabled', !isValid);
     }
 
     /**
@@ -210,10 +259,17 @@ export class SignupPage {
      * @param {string} message - 에러 메시지
      */
     showError(field, message) {
-        if (this.elements.helpers[field]) {
+        if (field && this.elements.helpers[field]) {
             this.updateHelperText(field, { isValid: false, message });
+            
+            // 해당 필드로 스크롤
+            const inputElement = this.elements.inputs[field];
+            if (inputElement) {
+                inputElement.focus();
+                inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         } else {
-            alert(message);
+            alert(message || '오류가 발생했습니다.');
         }
     }
 
@@ -224,32 +280,43 @@ export class SignupPage {
     setupProfileImageManager() {
         // 이미지 상태 변경과 에러 처리를 위한 콜백 객체 생성
         const callbacks = {
-            onImageChange: (imageData, isDefault) => {
-                this.handleProfileImageChange(imageData, isDefault);
+            onChange: (imageState) => {
+                this.handleProfileImageChange(imageState);
             },
             onError: (message) => {
                 this.showError('profileImage', message);
             }
         };
 
-        // ProfileImageManager 인스턴스 생성 시 콜백 전달
-        this.profileManager = new ProfileImageManager(callbacks);
+        // 기존 DOM 요소 선택자 전달 (ProfileImageManager 생성자에 맞게 조정)
+        const domSelectors = {
+            container: '#profileImageContainer',
+            preview: '#previewImage',
+            plusIcon: '.plus-icon',
+            dropdown: '#profileDropdown',
+            uploadBtn: '#uploadImage',
+            defaultBtn: '#useDefault',
+            fileInput: '#profileImage',
+        };
+
+        // ProfileImageManager 인스턴스 생성 시 콜백과 선택자 전달
+        this.profileManager = new ProfileImageManager({
+            onChange: callbacks.onChange,
+            onError: callbacks.onError,
+            domSelectors
+        });
     }
 
     /**
      * 프로필 이미지 변경 처리
      * @private
-     * @param {string} imageData - 이미지 데이터 URL
-     * @param {boolean} isDefault - 기본 이미지 여부
+     * @param {Object} imageState - 이미지 상태 객체
      */
-    handleProfileImageChange(imageData, isDefault) {
-        const formData = this.getFormData();
-        formData.profile_image = imageData;
-        formData.is_default_profile = isDefault;
-
-        // 자동 저장
-        signupModel.saveFormData(formData);
+    handleProfileImageChange(imageState) {
+        // 이미지 변경 시 폼 데이터 저장
+        this.saveFormData(true);
     }
+
     /**
      * 로그인 페이지로 이동
      * @private
@@ -265,7 +332,14 @@ export class SignupPage {
      * @public
      */
     destroy() {
-        this.profileManager?.destroy();
+        // 이벤트 리스너 정리
+        clearTimeout(this.saveTimer);
+        
+        // 프로필 이미지 매니저 정리
+        if (this.profileManager) {
+            this.profileManager.dispose();
+            this.profileManager = null;
+        }
     }
 }
 
@@ -273,6 +347,7 @@ export class SignupPage {
 document.addEventListener('DOMContentLoaded', () => {
     const signupPage = new SignupPage();
 
+    // 페이지 언로드 시 정리
     window.addEventListener('unload', () => {
         signupPage.destroy();
     });

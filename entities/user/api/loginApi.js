@@ -1,4 +1,4 @@
-import BaseApi from '/utilities/api/BaseApi';
+import BaseApi from '/utilities/api/baseApi.js';
 
 /**
  * 사용자 인증 관련 API 클래스 (로그인, 로그아웃 및 토큰 관리)

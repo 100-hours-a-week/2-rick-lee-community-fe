@@ -1,5 +1,5 @@
 // features/auth/signup/ui/imageState.js
-import { IMAGE_CONFIG } from '../lib/imageConfig.js';
+import { IMAGE_CONFIG } from '/utilities/image/imageConfig.js';
 
 /**
  * 이미지 상태 관리 클래스
@@ -65,5 +65,16 @@ export class ImageState {
             if (this.onStateChange) {
                 this.onStateChange(this.currentImage, this.isDefault);
             }
+    }
+
+    dispose() {
+        // 이미지 URL 정리
+        if (this.currentImage && !this.isDefault) {
+            URL.revokeObjectURL(this.currentImage);
+        }
+        
+        // 참조 정리
+        this.currentImage = null;
+        this.onStateChange = null;
     }
 }

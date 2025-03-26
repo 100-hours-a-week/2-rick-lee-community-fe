@@ -18,10 +18,10 @@ class PostListPage {
      */
     initializeElements() {
         return {
-            postListContainer: document.getElementById('postList'),
+            postListContainer: document.getElementById('postsContainer'),
             writeButton: document.getElementById('writeButton'),
-            loadingIndicator: document.getElementById('loadingIndicator'),
-            errorMessage: document.getElementById('errorMessage')
+            loadingIndicator: document.getElementById('loading'),
+            // errorMessage: document.getElementById('errorMessage')
         };
     }
 
