@@ -45,6 +45,8 @@ class PostListPage {
             this.showLoading(true);
             const result = await postListModel.loadPosts();
             
+            console.log('API 응답 데이터:', result); // 데이터 로깅 추가
+            
             if (result.success) {
                 this.renderPosts(result.data);
             } else {
