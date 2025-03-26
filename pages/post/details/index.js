@@ -436,9 +436,28 @@ class PostDetailPage {
     hideConfirmModal() {
         this.elements.confirmModal.style.display = 'none';
     }
+    
 }
 
-// 페이지 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    new PostDetailPage();
+    // 다양한 방식으로 postId 추출 시도
+    console.log('window.location.search:', window.location.search);
+    console.log('window.location.href:', window.location.href);
+
+    // 방법 1: URLSearchParams
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId1 = urlParams.get('id');
+    console.log('URLSearchParams로 추출:', postId1);
+
+    // 방법 2: window.location.search 직접 파싱
+    const searchParams = window.location.search.substring(1);
+    const params = searchParams.split('&');
+    const idParam = params.find(param => param.startsWith('id='));
+    const postId2 = idParam ? idParam.split('=')[1] : null;
+    console.log('직접 파싱으로 추출:', postId2);
+
+    // 방법 3: window.location.href 파싱
+    const urlMatch = window.location.href.match(/\?id=(\d+)/);
+    const postId3 = urlMatch ? urlMatch[1] : null;
+    console.log('정규표현식으로 추출:', postId3);
 });
