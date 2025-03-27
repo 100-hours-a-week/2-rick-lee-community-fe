@@ -33,24 +33,24 @@ export class PostDetailApi extends BaseApi {
     }
 
     /**
-     * 게시글 댓글 목록 조회 API 요청
+     * 게시글 삭제 API 요청
      * @param {string|number} postId - 게시글 ID
-     * @returns {Promise<Object>} 댓글 목록 결과 (성공 여부, 메시지, 데이터)
+     * @returns {Promise<Object>} 게시글 삭제 결과 (성공 여부, 메시지, 데이터)
      */
-    async getComments(postId) {
+    async deletePost(postId) {
         return this.authRequest(
             async () => {
-                const response = await this.request(`${this.API_ENDPOINT}/${postId}/comments`, {
-                    method: 'GET'
+                const response = await this.request(`${this.API_ENDPOINT}/${postId}`, {
+                    method: 'DELETE'
                 });
                 
                 return this.formatResponse(
                     response,
-                    'comments_retrieved',
-                    '댓글을 성공적으로 불러왔습니다.'
+                    'post_deleted',
+                    '게시글을 성공적으로 삭제했습니다.'
                 );
             },
-            '댓글을 불러오는데 실패했습니다.'
+            '게시글 삭제에 실패했습니다.'
         );
     }
 

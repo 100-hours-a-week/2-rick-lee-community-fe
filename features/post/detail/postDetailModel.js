@@ -1,5 +1,6 @@
 // /features/post/detail/model/postDetailModel.js
 import { postDetailApi } from '/entities/post/api/postDetailApi.js';
+import { commentApi } from '/entities/post/api/commentApi.js';
 import { JwtDecoder } from '/utilities/JwtDecoder.js';
 
 export class PostDetailModel extends JwtDecoder {
@@ -63,9 +64,24 @@ export class PostDetailModel extends JwtDecoder {
      */
     async loadComments(postId) {
         try {
-            const result = await postDetailApi.getComments(postId);
+            const result = await commentApi.getComments(postId);
             if (result.success) {
-                this.comments = result.data;
+                // 백엔드 응답 구조를 프론트엔드 구조로 변환
+                this.comments = result.data.map(comment => {
+                    return {
+                        id: comment.commentId,
+                        content: comment.content,
+                        createdAt: comment.createdAt,
+                        updatedAt: comment.updatedAt,
+                        author: {
+                            id: comment.authorId,
+                            nickname: comment.authorNickname,
+                            profileImage: comment.authorProfileImg ? 
+                                this.convertByteArrayToImageUrl(comment.authorProfileImg) : 
+                                '/shared/assets/images/default-profile.svg'
+                        }
+                    };
+                });
                 return { success: true, data: this.comments };
             } else {
                 return { success: false, message: result.message };
@@ -77,6 +93,22 @@ export class PostDetailModel extends JwtDecoder {
     }
 
     /**
+     * 바이트 배열을 이미지 URL로 변환
+     * @param {byte[]} byteArray - 이미지 바이트 배열
+     * @returns {string} 이미지 데이터 URL
+     */
+    convertByteArrayToImageUrl(byteArray) {
+        if (!byteArray) return null;
+        
+        // ArrayBuffer로 변환
+        const arrayBuffer = new Uint8Array(byteArray).buffer;
+        const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+        
+        // Blob URL 생성
+        return URL.createObjectURL(blob);
+    }
+
+    /**
      * 댓글 작성 후 목록 갱신
      * @param {string} postId - 게시글 ID
      * @param {string} content - 댓글 내용
@@ -84,7 +116,8 @@ export class PostDetailModel extends JwtDecoder {
      */
     async createComment(postId, content) {
         try {
-            const result = await postDetailApi.createComment(postId, content);
+            // commentApi 사용
+            const result = await commentApi.createComment(postId, content);
             if (result.success) {
                 await this.loadComments(postId);
                 return { success: true };
@@ -106,7 +139,8 @@ export class PostDetailModel extends JwtDecoder {
      */
     async updateComment(postId, commentId, content) {
         try {
-            const result = await postDetailApi.updateComment(postId, commentId, content);
+            // commentApi 사용 (인자 순서가 다름에 주의)
+            const result = await commentApi.updateComment(commentId, content);
             if (result.success) {
                 await this.loadComments(postId);
                 this.editingCommentId = null;
@@ -128,7 +162,8 @@ export class PostDetailModel extends JwtDecoder {
      */
     async deleteComment(postId, commentId) {
         try {
-            const result = await postDetailApi.deleteComment(postId, commentId);
+            // commentApi 사용 (postId는 사용하지 않음)
+            const result = await commentApi.deleteComment(commentId);
             if (result.success) {
                 await this.loadComments(postId);
                 return { success: true };
@@ -183,7 +218,7 @@ export class PostDetailModel extends JwtDecoder {
             return { success: false, message: '좋아요 처리에 실패했습니다.' };
         }
     }
-    
+
     /**
      * 게시글 수정 권한 확인
      * @returns {boolean} 수정 권한 여부
@@ -201,7 +236,8 @@ export class PostDetailModel extends JwtDecoder {
      */
     canEditComment(commentAuthorId) {
         if (!this.currentUserId) return false;
-        return commentAuthorId === this.currentUserId;
+        // 문자열과 숫자를 비교할 때는 == 연산자 사용 또는 문자열로 변환
+        return String(commentAuthorId) === String(this.currentUserId);
     }
 
     /**
