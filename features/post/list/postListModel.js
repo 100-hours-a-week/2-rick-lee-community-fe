@@ -74,15 +74,14 @@ export class PostListModel {
         if (!Array.isArray(posts)) return [];
         
         return posts.map(post => {
-            // 백엔드 데이터 필드명에 맞게 매핑
             return {
-                id: post.post_id || post.id,
+                id: post.postId || post.post_id || post.id,
                 title: post.title || '제목 없음',
                 content: post.content,
                 // 작성자 정보 (중첩 객체가 아닐 수 있음)
                 author: {
                     id: post.user_id || (post.author ? post.author.user_id : null),
-                    nickname: post.nickname || (post.author ? post.author.nickname : '작성자 정보 없음')
+                    nickname: post.nickname || post.authorNickname || (post.author ? post.author.nickname : '작성자 정보 없음')
                 },
                 // 날짜 정보
                 createdAt: post.created_at || post.createdAt,

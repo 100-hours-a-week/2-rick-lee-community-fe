@@ -13,19 +13,20 @@ export class PostDetailModel extends JwtDecoder {
     }
 
     /**
-     * 현재 사용자 ID 가져오기 (JWT 토큰 디코딩 방식)
-     * @returns {string|null} 현재 사용자 ID
-     */
+         * 현재 사용자 ID 가져오기 (JWT 토큰 디코딩 방식)
+         * @returns {string|null} 현재 사용자 ID
+         */
     getCurrentUserId() {
-        const token = localStorage.getItem('jwtToken');
+        // jwtToken에서 authToken으로 변경
+        const token = localStorage.getItem('authToken');
         if (!token) {
             console.warn('JWT 토큰이 존재하지 않습니다.');
             return null;
         }
         try {
             const payload = this.parseJwt(token);
-            // payload 내의 사용자 식별자 필드는 시스템에 따라 달라질 수 있음
-            return payload?.id || null;
+            // 백엔드에서는 'sub' 필드에 사용자 ID 저장
+            return payload?.sub || null;
         } catch (error) {
             console.error('JWT 토큰 파싱 오류:', error);
             return null;
@@ -33,7 +34,7 @@ export class PostDetailModel extends JwtDecoder {
     }
 
     /**
-     * 게시글 상세 정보 로드 및 조회수 증가 (비동기)
+     * 게시글 상세 정보 로드 (비동기)
      * @param {string} postId - 게시글 ID
      * @returns {Promise<Object>} 처리 결과
      */
@@ -42,11 +43,9 @@ export class PostDetailModel extends JwtDecoder {
             const result = await postDetailApi.getPostDetail(postId);
             if (result.success) {
                 this.post = result.data;
-                this.isLiked = result.data.isLiked;
-                // 조회수 증가를 별도의 비동기 요청으로 수행 (fire-and-forget)
-                postDetailApi.increaseViewCount(postId).catch(err => {
-                    console.error('조회수 업데이트 실패:', err);
-                });
+                // userLiked 필드 사용 (isLiked 대신)
+                this.isLiked = result.data.userLiked || false;
+                // 조회수 증가 API 호출 제거 (백엔드에서 자동 처리)
                 return { success: true, data: this.post };
             } else {
                 return { success: false, message: result.message };
@@ -184,14 +183,15 @@ export class PostDetailModel extends JwtDecoder {
             return { success: false, message: '좋아요 처리에 실패했습니다.' };
         }
     }
-
+    
     /**
      * 게시글 수정 권한 확인
      * @returns {boolean} 수정 권한 여부
      */
     canEditPost() {
         if (!this.post || !this.currentUserId) return false;
-        return this.post.author?.id === this.currentUserId;
+        // authorId 필드 사용 (author.id 대신)
+        return this.post.authorId === this.currentUserId;
     }
 
     /**
