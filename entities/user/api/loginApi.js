@@ -17,7 +17,7 @@ class LoginApi extends BaseApi {
   async login(email, password) {
     try {
       // 로그인은 인증이 필요없는 요청
-      const response = await this.request('/users/login', {
+      const response = await this.request('/auth/login', { // 변경: /users/login -> /auth/login
         method: 'POST',
         body: JSON.stringify({ email, password }),
       }, false); // false = 인증 불필요
@@ -51,7 +51,7 @@ class LoginApi extends BaseApi {
    */
   saveUserData(userData) {
     if (userData.token) {
-      localStorage.setItem(this.TOKEN_KEY, userData.token);
+      localStorage.setItem('authToken', userData.token); // 변경: this.TOKEN_KEY -> 'authToken'
     }
     if (userData.user_id) {
       localStorage.setItem(this.USER_ID_KEY, userData.user_id);

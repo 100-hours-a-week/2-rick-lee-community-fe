@@ -66,11 +66,11 @@ export class SignupApi extends BaseApi {
             }
 
             // 회원가입은 인증이 필요 없는 요청
-            const response = await this.request('/users/signup', options, false);
+            const response = await this.request('/users', options, false); // 변경: /users/signup -> /users
 
             return this.formatResponse(
                 response,
-                'register_success',
+                'user_created', // 변경: register_success -> user_created
                 '회원가입이 완료되었습니다.'
             );
         } catch (error) {

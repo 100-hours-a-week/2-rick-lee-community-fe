@@ -9,10 +9,32 @@ export class ProfileApi extends BaseApi {
     }
 
     /**
+     * 프로필 정보 조회 요청 처리
+     * @returns {Promise<Object>} 프로필 정보 (성공 여부, 메시지, 데이터)
+     */
+    async getProfile() {
+        return this.authRequest(
+            async () => {
+                const userId = this.getUserId();
+                const response = await this.request(`/users/${userId}`, {
+                    method: 'GET',
+                });
+
+                return this.formatResponse(
+                    response,
+                    'user_found',
+                    '프로필 정보를 성공적으로 불러왔습니다.'
+                );
+            },
+            '프로필 정보 조회 중 오류가 발생했습니다.'
+        );
+    }
+
+    /**
      * 프로필 정보 수정 요청 처리
      * @param {Object} profileData - 수정할 프로필 정보
-     * @param {string} profileData.username - 사용자명
-     * @param {string} profileData.email - 이메일
+     * @param {string} profileData.nickname - 사용자 닉네임
+     * @param {File|null} profileData.profileImg - 프로필 이미지
      * @returns {Promise<Object>} 수정 결과 (성공 여부, 메시지, 데이터)
      */
     async updateProfile(profileData) {
@@ -22,14 +44,14 @@ export class ProfileApi extends BaseApi {
                 const response = await this.request(`/users/${userId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
-                        username: profileData.username,
-                        email: profileData.email
+                        nickname: profileData.nickname,
+                        profileImg: profileData.profileImg
                     }),
                 });
 
-                // 사용자명이 변경된 경우 로컬 스토리지 업데이트
-                if (profileData.username !== this.getUsername()) {
-                    localStorage.setItem(this.USERNAME_KEY, profileData.username);
+                // 닉네임이 변경된 경우 로컬 스토리지 업데이트
+                if (profileData.nickname !== this.getUsername()) {
+                    localStorage.setItem(this.USERNAME_KEY, profileData.nickname);
                 }
 
                 return this.formatResponse(
@@ -49,13 +71,14 @@ export class ProfileApi extends BaseApi {
     async deleteAccount() {
         return this.authRequest(
             async () => {
-                const response = await this.request('/users', {
+                const userId = this.getUserId();
+                const response = await this.request(`/users/${userId}`, { // 변경: /users -> /users/${userId}
                     method: 'DELETE'
                 });
 
                 // 회원 탈퇴 성공 시 사용자 정보 삭제
                 if (response.message === 'user_deleted') {
-                    localStorage.removeItem(this.TOKEN_KEY);
+                    localStorage.removeItem('authToken'); // 변경: this.TOKEN_KEY -> 'authToken'
                     localStorage.removeItem(this.USER_ID_KEY);
                     localStorage.removeItem(this.USERNAME_KEY);
                 }
