@@ -55,30 +55,46 @@ export class PostDetailApi extends BaseApi {
     }
 
     /**
-     * 게시글 좋아요 추가/취소 요청
+     * 게시글 좋아요 추가 요청
      * @param {string|number} postId - 게시글 ID
-     * @param {boolean} isLiked - 현재 좋아요 상태 (true: 좋아요 취소, false: 좋아요 추가)
-     * @returns {Promise<Object>} 좋아요 처리 결과 (성공 여부, 메시지, 데이터)
+     * @returns {Promise<Object>} 좋아요 추가 결과
      */
-    async toggleLike(postId, isLiked) {
+    async addLike(postId) {
         return this.authRequest(
             async () => {
-                // 현재 좋아요 상태에 따라 HTTP 메서드 결정 (true면 DELETE, false면 POST)
-                const method = isLiked ? 'DELETE' : 'POST';
                 const response = await this.request(`${this.API_ENDPOINT}/${postId}/like`, {
-                    method
+                    method: 'POST'
                 });
-                
-                const expectedMessage = isLiked ? 'like_removed' : 'like_created';
-                const successMessage = isLiked ? '좋아요가 취소되었습니다.' : '좋아요가 추가되었습니다.';
                 
                 return this.formatResponse(
                     response,
-                    expectedMessage,
-                    successMessage
+                    'like_created',
+                    '좋아요가 추가되었습니다.'
                 );
             },
-            '좋아요 처리 중 오류가 발생했습니다.'
+            '좋아요 추가 중 오류가 발생했습니다.'
+        );
+    }
+
+    /**
+     * 게시글 좋아요 취소 요청
+     * @param {string|number} postId - 게시글 ID
+     * @returns {Promise<Object>} 좋아요 취소 결과
+     */
+    async removeLike(postId) {
+        return this.authRequest(
+            async () => {
+                const response = await this.request(`${this.API_ENDPOINT}/${postId}/like`, {
+                    method: 'DELETE'
+                });
+                
+                return this.formatResponse(
+                    response,
+                    'like_removed',
+                    '좋아요가 취소되었습니다.'
+                );
+            },
+            '좋아요 취소 중 오류가 발생했습니다.'
         );
     }
 }

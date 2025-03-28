@@ -389,6 +389,7 @@ class PostDetailPage {
             const result = await postDetailModel.toggleLike(this.postId);
             
             if (result.success) {
+                // UI 업데이트
                 this.updateLikeButtonState(result.isLiked);
                 this.elements.likeCount.textContent = postDetailModel.formatNumber(result.likeCount);
             } else {

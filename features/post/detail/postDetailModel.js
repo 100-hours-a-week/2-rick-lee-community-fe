@@ -196,25 +196,57 @@ export class PostDetailModel extends JwtDecoder {
     }
 
     /**
-     * 좋아요 상태 토글 및 카운트 업데이트
+     * 좋아요 상태 토글 및 카운트 업데이트ㄴ
      * @param {string} postId - 게시글 ID
      * @returns {Promise<Object>} 처리 결과
      */
     async toggleLike(postId) {
         try {
-            const newLikeState = !this.isLiked;
-            const result = await postDetailApi.toggleLike(postId, newLikeState);
+            let result;
+            
+            // 현재 상태에 따라 적절한 API 호출
+            if (this.isLiked) {
+                // 이미 좋아요 상태면 -> 취소 요청
+                result = await postDetailApi.removeLike(postId);
+            } else {
+                // 좋아요 상태가 아니면 -> 추가 요청
+                result = await postDetailApi.addLike(postId);
+            }
+            
             if (result.success) {
-                this.isLiked = newLikeState;
+                // 좋아요 상태 반전
+                this.isLiked = !this.isLiked;
+                
+                // 좋아요 카운트 업데이트
                 if (this.post && typeof this.post.likeCount === 'number') {
-                    this.post.likeCount = newLikeState ? this.post.likeCount + 1 : this.post.likeCount - 1;
+                    this.post.likeCount = this.isLiked 
+                        ? this.post.likeCount + 1 
+                        : Math.max(0, this.post.likeCount - 1);
                 }
-                return { success: true, isLiked: this.isLiked, likeCount: this.post?.likeCount };
+                
+                return { 
+                    success: true, 
+                    isLiked: this.isLiked, 
+                    likeCount: this.post?.likeCount 
+                };
             } else {
                 return { success: false, message: result.message };
             }
         } catch (error) {
             console.error('좋아요 처리 중 오류:', error);
+            
+            // 에러 메시지에서 "like not found" 패턴이 있으면 특별 처리
+            if (error.message && error.message.includes('like not found')) {
+                // 좋아요가 이미 취소된 상태로 간주하고 UI 업데이트
+                this.isLiked = false;
+                return { 
+                    success: true, 
+                    isLiked: false,
+                    likeCount: this.post?.likeCount, 
+                    message: '이미 좋아요가 취소되었습니다.'
+                };
+            }
+            
             return { success: false, message: '좋아요 처리에 실패했습니다.' };
         }
     }
