@@ -7,19 +7,18 @@ export class ProfileApi extends BaseApi {
     constructor() {
         super('http://localhost:8080');
     }
-
     /**
      * 프로필 정보 조회 요청 처리
-     * @returns {Promise<Object>} 프로필 정보 (성공 여부, 메시지, 데이터)
+     * @returns {Promise<Object>} 조회 결과 (성공 여부, 메시지, 데이터)
      */
     async getProfile() {
         return this.authRequest(
             async () => {
                 const userId = this.getUserId();
                 const response = await this.request(`/users/${userId}`, {
-                    method: 'GET',
+                    method: 'GET'
                 });
-
+                
                 return this.formatResponse(
                     response,
                     'user_found',
@@ -27,6 +26,28 @@ export class ProfileApi extends BaseApi {
                 );
             },
             '프로필 정보 조회 중 오류가 발생했습니다.'
+        );
+    }
+
+    /**
+     * 닉네임 중복 확인 요청 처리
+     * @param {string} nickname - 확인할 닉네임
+     * @returns {Promise<Object>} 중복 확인 결과 (성공 여부, 메시지, 데이터)
+     */
+    async checkNickname(nickname) {
+        return this.authRequest(  // authRequest 메소드로 변경 (인증 토큰 자동 첨부)
+            async () => {
+                const response = await this.request(`/users/check-nickname?nickname=${encodeURIComponent(nickname)}`, {
+                    method: 'GET'
+                });
+                
+                return this.formatResponse(
+                    response, 
+                    'nickname_available',
+                    '사용 가능한 닉네임입니다.'
+                );
+            },
+            '닉네임 중복 확인 중 오류가 발생했습니다.'
         );
     }
 
@@ -71,14 +92,14 @@ export class ProfileApi extends BaseApi {
     async deleteAccount() {
         return this.authRequest(
             async () => {
-                const userId = this.getUserId();
-                const response = await this.request(`/users/${userId}`, { // 변경: /users -> /users/${userId}
+                // 현재 백엔드는 /users DELETE에 userId를 경로에 포함하지 않음
+                const response = await this.request('/users', {
                     method: 'DELETE'
                 });
 
                 // 회원 탈퇴 성공 시 사용자 정보 삭제
                 if (response.message === 'user_deleted') {
-                    localStorage.removeItem('authToken'); // 변경: this.TOKEN_KEY -> 'authToken'
+                    localStorage.removeItem('authToken');
                     localStorage.removeItem(this.USER_ID_KEY);
                     localStorage.removeItem(this.USERNAME_KEY);
                 }

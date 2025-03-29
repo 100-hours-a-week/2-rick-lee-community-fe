@@ -172,47 +172,16 @@ export class Header {
      */
     async fetchProfileImage() {
         try {
-            // 'jwt' -> 'authToken' 변경
             const token = localStorage.getItem('authToken');
-            
             if (!token) return;
             
-            // JWT 토큰에서 사용자 ID 추출
-            const userData = this.jwtDecoder.parseJwt(token);
-            const userId = userData.sub; // 토큰의 subject 필드가 사용자 ID
-            
-            // 수정된 API 경로로 요청 (RESTful)
-            const response = await fetch(`http://localhost:8080/users/${userId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
+            // 기본 이미지 표시 (사용자 정보 조회 API가 없으므로)
             const imgElement = this.elements.profileImageElement;
-            if (!imgElement) return;
-            
-            if (response.ok) {
-                try {
-                    const data = await response.json();
-                    // 응답 데이터 구조에 따라 이미지 URL 추출
-                    if (data.data && data.data.profileImg) {
-                        // 이미지가 바이트 배열이거나 URL인 경우 처리
-                        imgElement.src = typeof data.data.profileImg === 'string' && data.data.profileImg.startsWith('http') 
-                            ? data.data.profileImg 
-                            : window.location.origin + '/shared/assets/images/default-profile.svg';
-                    } else {
-                        imgElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
-                    }
-                } catch (jsonError) {
-                    console.error('Failed to parse JSON response:', jsonError);
-                    imgElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
-                }
-            } else {
-                console.warn('Failed to fetch profile image, status:', response.status);
+            if (imgElement) {
                 imgElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
             }
         } catch (error) {
-            console.error('Network error while fetching profile image:', error);
+            console.error('Failed to fetch profile image:', error);
             if (this.elements.profileImageElement) {
                 this.elements.profileImageElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
             }

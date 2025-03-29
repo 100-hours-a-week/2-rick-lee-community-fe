@@ -117,9 +117,11 @@ export class PasswordChangeModel {
             };
         }
 
-        return await passwordChangeApi.changePassword({
-            newPassword: this.formData.newPassword
-        });
+        // 현재 비밀번호와 새 비밀번호를 별도의 매개변수로 전달
+        return await passwordChangeApi.changePassword(
+            this.formData.currentPassword,
+            this.formData.newPassword
+        );
     }
 }
 

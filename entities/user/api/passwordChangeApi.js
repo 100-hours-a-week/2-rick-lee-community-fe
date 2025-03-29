@@ -19,10 +19,10 @@ export class PasswordChangeApi extends BaseApi {
             async () => {
                 const userId = this.getUserId();
                 const response = await this.request(`/users/${userId}/password`, {
-                    method: 'PATCH', // 변경: PUT -> PATCH
+                    method: 'PUT',
                     body: JSON.stringify({ 
-                        currentPassword: currentPassword, // 변경: current_password -> currentPassword
-                        newPassword: newPassword // 변경: new_password -> newPassword
+                        currentPassword: currentPassword,
+                        newPassword: newPassword 
                     }),
                 });
 

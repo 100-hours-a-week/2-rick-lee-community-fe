@@ -7,6 +7,8 @@ class ProfileModifyPage {
         this.elements.modal.container.style.display = 'none'; //모달의 초기상태 설정
         this.setupEventListeners();
         this.loadUserProfile();
+        this.currentNickname = ''; // 현재 사용자 닉네임 저장용
+        this.debounceTimer = null; // 디바운스 타이머
     }
 
     /**
@@ -46,10 +48,52 @@ class ProfileModifyPage {
             this.elements.profileContainer.style.backgroundColor = '';
         });
 
-        // 닉네임 입력 관련
-        this.elements.nickname.addEventListener('input', () => {
-            const length = this.elements.nickname.value.length;
-            this.elements.charCount.textContent = `${length}/10`;
+         // 닉네임 입력 이벤트 수정
+    this.elements.nickname.addEventListener('input', () => {
+        const nickname = this.elements.nickname.value;
+        const length = nickname.length;
+        this.elements.charCount.textContent = `${length}/10`;
+        
+        // 기본 유효성 검사
+        if (!nickname || nickname.trim().length === 0) {
+            this.showHelperText('닉네임을 입력해주세요');
+            return;
+        }
+        
+        if (length > 10) {
+            this.showHelperText('닉네임은 최대 10자까지 가능합니다');
+            return;
+        }
+        
+        // 현재 닉네임과 같으면 검증 건너뛰기
+        if (nickname === this.currentNickname) {
+            this.elements.modifyHelper.textContent = '';
+            return;
+        }
+        
+        // 디바운스 적용 - 타이핑 중지 후 500ms 후에 API 호출
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(async () => {
+            // 중복 확인 진행 중 표시
+            this.elements.modifyHelper.textContent = '확인 중...';
+            this.elements.modifyHelper.style.color = '#666';
+            
+            try {
+                const result = await profileModifyModel.checkNicknameDuplicate(nickname);
+                
+                if (result.success) {
+                    // 사용 가능한 닉네임
+                    this.elements.modifyHelper.textContent = '사용 가능한 닉네임입니다';
+                    this.elements.modifyHelper.style.color = 'green';
+                } else {
+                    // 중복된 닉네임
+                    this.showHelperText('중복된 닉네임입니다');
+                }
+            } catch (error) {
+                console.error('닉네임 중복 확인 중 오류:', error);
+                this.elements.modifyHelper.textContent = '';
+            }
+        }, 500); // 500ms 디바운스
         });
 
         // 수정하기 버튼
@@ -208,31 +252,19 @@ class ProfileModifyPage {
      */
     async loadUserProfile() {
         try {
-            const token = localStorage.getItem('jwt');
-            // if (!token) {
-            //     window.location.href = '/pages/auth/login/index.html';
-            //     return;
-            // }
-
-            const response = await fetch('/api/users/profile', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
+            // 프로필 정보를 불러오는 API 호출
+            const result = await profileModifyModel.getProfile();
+            
+            if (result.success) {
+                this.updateProfileUI(result.data);
+            } else {
                 throw new Error('프로필 정보를 불러오는데 실패했습니다.');
             }
-
-            const data = await response.json();
-            this.updateProfileUI(data);
-
         } catch (error) {
             console.error('프로필 로드 중 오류:', error);
             alert('프로필 정보를 불러오는데 실패했습니다.');
         }
     }
-
     /**
      * 프로필 정보로 UI 업데이트
      * @private
@@ -244,6 +276,7 @@ class ProfileModifyPage {
 
         // 닉네임 입력란 설정
         this.elements.nickname.value = profileData.nickname;
+        this.currentNickname = profileData.nickname; // 현재 닉네임 저장
 
         // 프로필 이미지 표시
         if (profileData.profile_image) {

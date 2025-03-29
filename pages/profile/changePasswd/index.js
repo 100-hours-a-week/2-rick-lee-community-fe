@@ -19,6 +19,8 @@ class PasswordChangePage {
     initializeElements() {
         return {
             form: document.querySelector('.password-form'),
+            currentPassword: document.getElementById('currentPassword'), // 현재 비밀번호 요소 추가
+            currentPasswordHelper: document.getElementById('currentPasswordHelper'), // 현재 비밀번호 도움말 요소 추가
             newPassword: document.getElementById('newPassword'),
             passwordConfirm: document.getElementById('passwordConfirm'),
             passwordHelper: document.getElementById('passwordHelper'),
@@ -32,6 +34,16 @@ class PasswordChangePage {
      * @private
      */
     setupEventListeners() {
+        // 현재 비밀번호 입력 이벤트 추가
+        this.elements.currentPassword.addEventListener('input', () => {
+            const result = passwordChangeModel.updateFormData(
+                'currentPassword',
+                this.elements.currentPassword.value
+            );
+            this.updateHelperText('currentPasswordHelper', result);
+            this.updateSubmitButton();
+        });
+
         // 비밀번호 입력 이벤트
         this.elements.newPassword.addEventListener('input', () => {
             const result = passwordChangeModel.updateFormData(
@@ -110,9 +122,9 @@ class PasswordChangePage {
             
             if (result.success) {
                 alert(result.message);
-                window.location.href = '/pages/profile/index.html';
+                window.location.href = '/pages/post/list/index.html';
             } else {
-                this.updateHelperText('passwordHelper', {
+                this.updateHelperText('currentPasswordHelper', {
                     isValid: false,
                     message: result.message
                 });
@@ -121,7 +133,7 @@ class PasswordChangePage {
             }
         } catch (error) {
             console.error('비밀번호 변경 중 오류:', error);
-            this.updateHelperText('passwordHelper', {
+            this.updateHelperText('currentPasswordHelper', {
                 isValid: false,
                 message: '비밀번호 변경 중 오류가 발생했습니다.'
             });
