@@ -1,20 +1,15 @@
-/**
- * 이미지 관련 설정 상수 및 에러 클래스
- * @module imageConfig
- */
+// utilities/image/imageConfig.js
+import config from '/utilities/config.js';
 
 /**
  * 이미지 관련 설정 상수
  */
 export const IMAGE_CONFIG = {
-    MAX_SIZE: 5 * 1024 * 1024, // 5MB
-    ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/gif'],
-    DEFAULT_PATH: '/shared/assets/images/default-profile.svg',
-    THUMBNAIL: {
-        MAX_WIDTH: 300,
-        MAX_HEIGHT: 300,
-        QUALITY: 0.85
-    }
+    MAX_SIZE: config.IMAGE.MAX_SIZE,
+    ALLOWED_TYPES: config.IMAGE.ALLOWED_TYPES,
+    DEFAULT_PATH: config.DEFAULT_PROFILE_IMAGE,
+    S3_BUCKET_URL: config.S3_BUCKET_URL,
+    THUMBNAIL: config.IMAGE.THUMBNAIL
 };
 
 /**
@@ -26,7 +21,8 @@ export const IMAGE_ERROR_CODES = {
     INVALID_TYPE: '지원하지 않는 이미지 형식입니다.',
     READ_ERROR: '파일 읽기에 실패했습니다.',
     PROCESSING_ERROR: '이미지 처리 중 오류가 발생했습니다.',
-    CONVERSION_ERROR: '이미지 변환에 실패했습니다.'
+    CONVERSION_ERROR: '이미지 변환에 실패했습니다.',
+    UPLOAD_ERROR: 'S3 업로드 중 오류가 발생했습니다.'
 };
 
 /**

@@ -10,11 +10,6 @@ import { ImageError } from '/utilities/image/imageConfig.js';
 /**
  * SignupModel 클래스
  * 회원가입 관련 비즈니스 로직과 데이터 관리를 담당
- * 
- * 주요 기능:
- * - 폼 데이터 유효성 검사
- * - 회원가입 API 요청 처리
- * - 임시 데이터 저장 관리
  */
 class SignupModel {
     /**
@@ -154,19 +149,11 @@ class SignupModel {
                 };
             }
 
-            // API 요청 데이터 구성 (백엔드 예상 형식에 맞춰 변환)
-            const requestData = {
-                email: formData.email,
-                password: formData.password,
-                nickname: formData.nickname || formData.username, // nickname 우선, 없으면 username 사용
-                profileImg: null // 기본값으로 null 설정
-            };
+            // 프로필 이미지 처리
+            const profileImage = formData.profileImage;
 
-            // 프로필 이미지 처리는 별도 API로 구현 필요 (현재 백엔드는 JSON으로 이미지를 받지 않음)
-            // TODO: 이미지 업로드 기능 분리 구현
-
-            // API 호출 및 결과 처리
-            const result = await signupApi.register(requestData);
+            // API를 통한 회원가입 처리 (멀티파트 방식)
+            const result = await signupApi.register(formData, profileImage);
             
             if (result.success) {
                 this.clearSavedData(); // 성공 시 임시 데이터 삭제
@@ -209,9 +196,9 @@ class SignupModel {
     saveFormData(formData) {
         clearTimeout(this.debounceTimer);
         this.debounceTimer = setTimeout(() => {
-            // 저장할 데이터 준비 (깊은 복사 대신 필요한 필드만 추출)
+            // 저장할 데이터 준비
             const dataToSave = {
-                nickname: formData.nickname || formData.username, // nickname 우선, 없으면 username 사용
+                nickname: formData.nickname || formData.username,
                 email: formData.email,
                 password: formData.password,
                 passwordConfirm: formData.passwordConfirm

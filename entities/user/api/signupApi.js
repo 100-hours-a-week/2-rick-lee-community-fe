@@ -1,58 +1,43 @@
+// entities/user/api/signupApi.js
 import BaseApi from '/utilities/api/baseApi.js';
+import config from '/utilities/config.js';
 
 /**
  * 회원가입 관련 API 클래스
  */
 export class SignupApi extends BaseApi {
     constructor() {
-        super('http://localhost:8080');
+        super(config.API_BASE_URL);
     }
 
     /**
-     * 회원가입 요청 처리 메서드
-     * @param {FormData|Object} userData - 사용자 등록 정보 (FormData 또는 일반 객체)
-     * @returns {Promise<Object>} 회원가입 결과 (성공 여부, 메시지, 데이터)
+     * 회원가입 요청 처리 메서드 (멀티파트 방식)
+     * @param {Object} userData - 사용자 등록 정보
+     * @param {File} profileImage - 프로필 이미지 파일 (선택사항)
+     * @returns {Promise<Object>} 회원가입 결과
      */
-    async register(userData) {
+    async register(userData, profileImage = null) {
         try {
-            let requestData;
-            let options = {
-                method: 'POST'
-            };
-
-            // FormData 객체인 경우 JSON 형식으로 변환
-            if (userData instanceof FormData) {
-                const email = userData.get('email');
-                const password = userData.get('password');
-                const nickname = userData.get('username'); // username을 nickname으로 변환
-                const profileImage = userData.get('profile_image'); // 이미지 파일
-
-                requestData = {
-                    email,
-                    password,
-                    nickname,
-                    profileImg: null // 기본값으로 null 설정
-                };
-
-                options.body = JSON.stringify(requestData);
-                options.headers = {
-                    ...this.getDefaultHeaders(),
-                    'Content-Type': 'application/json;charset=UTF-8'
-                };
-            } else {
-                requestData = {
-                    email: userData.email,
-                    password: userData.password,
-                    nickname: userData.username || userData.nickname,
-                    profileImg: null // 기본값으로 null 설정
-                };
-                
-                options.body = JSON.stringify(requestData);
-                options.headers = {
-                    ...this.getDefaultHeaders(),
-                    'Content-Type': 'application/json;charset=UTF-8'
-                };
+            const formData = new FormData();
+            
+            // 닉네임 통일 (username을 nickname으로 변환)
+            const nickname = userData.nickname || userData.username;
+            
+            // 각 필드를 개별적으로 FormData에 추가 (JSON 문자열로 추가하지 않음)
+            formData.append('email', userData.email);
+            formData.append('password', userData.password);
+            formData.append('nickname', nickname);
+            
+            // 이미지 파일 추가 (있는 경우)
+            if (profileImage && !profileImage.isDefault) {
+                formData.append('image', profileImage.file);
             }
+            
+            // API 요청 설정
+            const options = {
+                method: 'POST',
+                body: formData
+            };
 
             // 현재 백엔드 엔드포인트에 맞춤
             const response = await this.request('/users/signup', options, false);
