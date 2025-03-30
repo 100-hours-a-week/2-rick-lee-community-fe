@@ -185,9 +185,18 @@ class ProfileModifyPage {
      */
     async handleSubmit() {
         try {
-            const result = await this.handleModify();
+            const profileData = {
+                nickname: this.elements.nickname.value,
+                image: null
+            };
+    
+            const result = await profileModifyModel.updateProfile(profileData);
+    
             if (result.success) {
-                window.location.href = '/pages/list/index.html';
+                this.showToast('수정 완료');
+                window.location.href = '/pages/post/list/index.html';
+            } else {
+                this.showHelperText(result.message);
             }
         } catch (error) {
             console.error('프로필 수정 중 오류:', error);
