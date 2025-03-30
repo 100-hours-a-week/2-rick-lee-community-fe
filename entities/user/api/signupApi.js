@@ -1,36 +1,54 @@
-import BaseApi from 'entities/BaseApi';
+// entities/user/api/signupApi.js
+import BaseApi from '/utilities/api/baseApi.js';
+import config from '/utilities/config.js';
 
+/**
+ * 회원가입 관련 API 클래스
+ */
 export class SignupApi extends BaseApi {
     constructor() {
-        super('http://localhost:8080');
+        super(config.API_BASE_URL);
     }
 
     /**
-     * 회원가입 요청 처리 메서드
+     * 회원가입 요청 처리 메서드 (멀티파트 방식)
      * @param {Object} userData - 사용자 등록 정보
-     * @param {string} userData.email - 이메일
-     * @param {string} userData.password - 비밀번호
-     * @param {string} userData.nickname - 닉네임
-     * @param {string} [userData.profile_image] - 프로필 이미지 URL (선택)
-     * @returns {Promise<Object>} 회원가입 결과 (성공 여부, 메시지, 데이터)
+     * @param {File} profileImage - 프로필 이미지 파일 (선택사항)
+     * @returns {Promise<Object>} 회원가입 결과
      */
-    async register(userData) {
+    async register(userData, profileImage = null) {
         try {
-        // BaseApi의 공통 request 메서드를 사용하여 API 요청
-        const data = await this.request('/users/signup', {
-            method: 'POST',
-            body: JSON.stringify(userData),
-        });
-        return {
-            success: true,
-            data: data.data,
-            message: '회원가입이 완료되었습니다.',
-        };
+            const formData = new FormData();
+            
+            // 닉네임 통일 (username을 nickname으로 변환)
+            const nickname = userData.nickname || userData.username;
+            
+            // 각 필드를 개별적으로 FormData에 추가 (JSON 문자열로 추가하지 않음)
+            formData.append('email', userData.email);
+            formData.append('password', userData.password);
+            formData.append('nickname', nickname);
+            
+            // 이미지 파일 추가 (있는 경우)
+            if (profileImage && !profileImage.isDefault) {
+                formData.append('image', profileImage.file);
+            }
+            
+            // API 요청 설정
+            const options = {
+                method: 'POST',
+                body: formData
+            };
+
+            // 현재 백엔드 엔드포인트에 맞춤
+            const response = await this.request('/users/signup', options, false);
+
+            return this.formatResponse(
+                response,
+                'register_success',
+                '회원가입이 완료되었습니다.'
+            );
         } catch (error) {
-        return {
-            success: false,
-            message: error.message || '네트워크 오류가 발생했습니다.',
-        };
+            return this.handleError(error, '회원가입 처리 중 오류가 발생했습니다.');
         }
     }
 }

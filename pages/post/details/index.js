@@ -8,6 +8,16 @@ import { postDetailModel } from '/features/post/detail/postDetailModel.js';
 class PostDetailPage {
     constructor() {
         this.postId = this.getPostIdFromUrl();
+        
+        // ID가 유효하지 않은 경우 처리
+        if (!this.postId || this.postId === 'undefined') {
+            this.showErrorModal('유효하지 않은 게시글 ID입니다.');
+            setTimeout(() => {
+                window.location.href = '/pages/post/list/index.html';
+            }, 2000);
+            return;
+        }
+        
         this.elements = this.initializeElements();
         this.confirmCallback = null;
         this.setupEventListeners();
@@ -156,10 +166,14 @@ class PostDetailPage {
         // 게시글 제목
         this.elements.postTitle.textContent = post.title;
 
-        // 작성자 정보
-        this.elements.authorName.textContent = post.author.nickname;
-        if (post.author.profileImage) {
-            this.elements.authorProfile.src = post.author.profileImage;
+        // 작성자 정보 - 객체가 아닌 flat한 구조 사용
+        this.elements.authorName.textContent = post.authorNickname;
+        if (post.authorProfileImg) {
+            // ArrayBuffer를 데이터 URL로 변환해야 할 수도 있음
+            const imgSrc = post.authorProfileImg instanceof ArrayBuffer 
+                ? URL.createObjectURL(new Blob([post.authorProfileImg])) 
+                : post.authorProfileImg;
+            this.elements.authorProfile.src = imgSrc;
         }
 
         // 작성일
@@ -169,10 +183,14 @@ class PostDetailPage {
         this.elements.postText.textContent = post.content;
 
         // 이미지가 있는 경우
-        if (post.imageUrl) {
+        if (post.postImg) {
             this.elements.imagePlaceholder.style.display = 'none';
             const imgElement = document.createElement('img');
-            imgElement.src = post.imageUrl;
+            // ArrayBuffer를 데이터 URL로 변환해야 할 수도 있음
+            const imgSrc = post.postImg instanceof ArrayBuffer 
+                ? URL.createObjectURL(new Blob([post.postImg])) 
+                : post.postImg;
+            imgElement.src = imgSrc;
             imgElement.alt = '게시글 이미지';
             imgElement.className = 'post-image-content';
             this.elements.postImageContainer.appendChild(imgElement);
@@ -180,7 +198,7 @@ class PostDetailPage {
             this.elements.imagePlaceholder.style.display = 'none';
         }
 
-        // 통계 업데이트
+        // 통계 업데이트 - 필드명 일치
         this.elements.likeCount.textContent = postDetailModel.formatNumber(post.likeCount);
         this.elements.viewCount.textContent = postDetailModel.formatNumber(post.viewCount);
         this.elements.commentCount.textContent = postDetailModel.formatNumber(post.commentCount);
@@ -371,6 +389,7 @@ class PostDetailPage {
             const result = await postDetailModel.toggleLike(this.postId);
             
             if (result.success) {
+                // UI 업데이트
                 this.updateLikeButtonState(result.isLiked);
                 this.elements.likeCount.textContent = postDetailModel.formatNumber(result.likeCount);
             } else {
@@ -436,9 +455,27 @@ class PostDetailPage {
     hideConfirmModal() {
         this.elements.confirmModal.style.display = 'none';
     }
+    
 }
 
-// 페이지 초기화
 document.addEventListener('DOMContentLoaded', () => {
+    // 다양한 방식으로 postId 추출 시도
+    console.log('window.location.search:', window.location.search);
+    console.log('window.location.href:', window.location.href);
+
+    // URLSearchParams로 ID 추출
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id');
+    console.log('추출된 postId:', postId);
+
+    // ID 유효성 검사
+    if (!postId || postId === 'undefined' || isNaN(parseInt(postId))) {
+        console.error('유효하지 않은 게시글 ID:', postId);
+        alert('유효하지 않은 게시글 ID입니다.');
+        window.location.href = '/pages/post/list/index.html';
+        return;
+    }
+
+    // 유효한 ID가 있을 경우에만 PostDetailPage 클래스 초기화
     new PostDetailPage();
 });

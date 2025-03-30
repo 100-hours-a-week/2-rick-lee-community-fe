@@ -1,22 +1,19 @@
-// features/auth/signup/model/signupModel.js
-
+/**
+ * 회원가입 모델 모듈
+ * @module signupModel
+ */
 import { VALIDATION_RULES } from './validation.js';
 import { signupApi } from '/entities/user/api/signupApi.js';
 import { authTempStorage } from '/entities/user/model/authTempStorge.js';
+import { ImageError } from '/utilities/image/imageConfig.js';
 
 /**
  * SignupModel 클래스
  * 회원가입 관련 비즈니스 로직과 데이터 관리를 담당
- * 
- * 주요 기능:
- * - 폼 데이터 유효성 검사
- * - 회원가입 API 요청 처리
- * - 임시 데이터 저장 관리
  */
 class SignupModel {
     /**
      * SignupModel 생성자
-     * 자동 저장 관련 설정 초기화
      */
     constructor() {
         this.DEBOUNCE_DELAY = 500;
@@ -32,8 +29,11 @@ class SignupModel {
      * @returns {Object} 유효성 검사 결과 ({isValid, message})
      */
     validateField(field, value, formData = {}) {
+        // nickname 필드로 통일 (username -> nickname)
+        const fieldName = field === 'username' ? 'nickname' : field;
+        
         // 유효성 검사가 필요한 필드가 아닌 경우 항상 유효하다고 처리
-        if (!VALIDATION_RULES[field]) {
+        if (!VALIDATION_RULES[fieldName]) {
             return {
                 isValid: true,
                 message: ''
@@ -41,10 +41,10 @@ class SignupModel {
         }
 
         // 빈 값 체크
-        if (!value && VALIDATION_RULES[field].required) {
+        if (!value && VALIDATION_RULES[fieldName].required) {
             return {
                 isValid: false,
-                message: VALIDATION_RULES[field].required
+                message: VALIDATION_RULES[fieldName].required
             };
         }
 
@@ -57,15 +57,15 @@ class SignupModel {
         }
 
         // 패턴 검사
-        if (VALIDATION_RULES[field].pattern && !VALIDATION_RULES[field].pattern.test(value)) {
+        if (VALIDATION_RULES[fieldName].pattern && !VALIDATION_RULES[fieldName].pattern.test(value)) {
             return {
                 isValid: false,
-                message: VALIDATION_RULES[field].invalid
+                message: VALIDATION_RULES[fieldName].invalid
             };
         }
 
         // 비밀번호 확인 검사
-        if (field === 'passwordConfirm' && value !== formData.password) {
+        if (fieldName === 'passwordConfirm' && value !== formData.password) {
             return {
                 isValid: false,
                 message: VALIDATION_RULES.passwordConfirm.mismatch
@@ -73,10 +73,10 @@ class SignupModel {
         }
 
         // 닉네임 길이 검사
-        if (field === 'nickname' && value.length > 10) {
+        if (fieldName === 'nickname' && value.length > 20) {
             return {
                 isValid: false,
-                message: '닉네임은 최대 10자까지 작성 가능합니다.'
+                message: '닉네임은 최대 20자까지 작성 가능합니다.'
             };
         }
 
@@ -92,8 +92,34 @@ class SignupModel {
      * @returns {Object} 유효성 검사 결과
      */
     validateForm(formData) {
+        // 필수 필드 확인 (username -> nickname으로 변경)
+        const requiredFields = ['email', 'password', 'passwordConfirm', 'nickname'];
+        
+        for (const field of requiredFields) {
+            // username과 nickname 둘 중 하나만 있어도 유효
+            if (field === 'nickname' && formData.username) {
+                continue;
+            }
+            
+            if (!formData[field] && field !== 'passwordConfirm') {
+                return {
+                    isValid: false,
+                    field,
+                    message: VALIDATION_RULES[field]?.required || `${field} is required`
+                };
+            }
+        }
+
+        // 모든 필드 유효성 검사
         for (const [field, value] of Object.entries(formData)) {
-            const validation = this.validateField(field, value, formData);
+            // profileImage는 별도로 처리하므로 여기서는 건너뜀
+            if (field === 'profileImage') continue;
+            
+            // username은 nickname으로 취급하여 검사
+            const fieldName = field === 'username' ? 'nickname' : field;
+            
+            // 각 필드 검사
+            const validation = this.validateField(fieldName, value, formData);
             if (!validation.isValid) {
                 return {
                     isValid: false,
@@ -102,6 +128,7 @@ class SignupModel {
                 };
             }
         }
+        
         return { isValid: true };
     }
 
@@ -122,22 +149,17 @@ class SignupModel {
                 };
             }
 
-            // API 요청 데이터 구성
-            const requestData = {
-                email: formData.email,
-                password: 'ACAD0EB' + formData.password + '7F6AEE',
-                nickname: formData.nickname,
-                profile_image: formData.profile_image || null
-            };
+            // 프로필 이미지 처리
+            const profileImage = formData.profileImage;
 
-            // API 호출 및 결과 처리
-            const result = await signupApi.register(requestData);
+            // API를 통한 회원가입 처리 (멀티파트 방식)
+            const result = await signupApi.register(formData, profileImage);
             
             if (result.success) {
                 this.clearSavedData(); // 성공 시 임시 데이터 삭제
                 return {
                     success: true,
-                    message: '회원가입이 완료되었습니다.',
+                    message: result.message || '회원가입이 완료되었습니다.',
                     data: result.data
                 };
             }
@@ -145,11 +167,21 @@ class SignupModel {
             return {
                 success: false,
                 field: this.getErrorField(result.message),
-                message: this.getErrorMessage(result.message)
+                message: result.message || '회원가입에 실패했습니다.'
             };
 
         } catch (error) {
             console.error('회원가입 처리 중 오류:', error);
+            
+            // ImageError 처리
+            if (error instanceof ImageError) {
+                return {
+                    success: false,
+                    field: 'profileImage',
+                    message: error.message
+                };
+            }
+            
             return {
                 success: false,
                 message: '회원가입 처리 중 오류가 발생했습니다.'
@@ -162,7 +194,23 @@ class SignupModel {
      * @param {Object} formData - 저장할 폼 데이터
      */
     saveFormData(formData) {
-        authTempStorage.saveSignupForm(formData);
+        clearTimeout(this.debounceTimer);
+        this.debounceTimer = setTimeout(() => {
+            // 저장할 데이터 준비
+            const dataToSave = {
+                nickname: formData.nickname || formData.username,
+                email: formData.email,
+                password: formData.password,
+                passwordConfirm: formData.passwordConfirm
+            };
+            
+            // 프로필 이미지 데이터 추가 (있는 경우)
+            if (formData.profileImage && formData.profileImage.dataURL) {
+                dataToSave.profileImageURL = formData.profileImage.dataURL;
+            }
+            
+            authTempStorage.saveSignupForm(dataToSave);
+        }, this.DEBOUNCE_DELAY);
     }
 
     /**
@@ -185,25 +233,18 @@ class SignupModel {
      * @private
      */
     getErrorField(errorMessage) {
-        const errorMap = {
+        // 백엔드 에러 메시지에 따른 필드 매핑
+        const errorFieldMap = {
             'duplicate_email': 'email',
             'duplicate_nickname': 'nickname',
-            'invalid_request': 'form'
+            'invalid_email': 'email',
+            'invalid_password': 'password',
+            'invalid_image': 'profileImage',
+            'invalid_request': 'form',
+            'validation_error': 'form'
         };
-        return errorMap[errorMessage] || 'form';
-    }
-
-    /**
-     * API 에러 메시지를 사용자 친화적인 메시지로 변환
-     * @private
-     */
-    getErrorMessage(errorMessage) {
-        const messageMap = {
-            'duplicate_email': VALIDATION_RULES.email.duplicate,
-            'duplicate_nickname': VALIDATION_RULES.nickname.duplicate,
-            'invalid_request': '입력 정보를 확인해주세요.'
-        };
-        return messageMap[errorMessage] || '회원가입 처리 중 오류가 발생했습니다.';
+        
+        return errorFieldMap[errorMessage] || 'form';
     }
 }
 

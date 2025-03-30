@@ -1,5 +1,7 @@
 // shared/components/Header/Header.js
 
+import { JwtDecoder } from '/utilities/jwtDecoder.js';
+
 /**
  * Header 클래스
  * 웹 애플리케이션의 공통 헤더를 관리
@@ -22,6 +24,7 @@ export class Header {
             isDropdownVisible: false,
             error: null
         };
+        this.jwtDecoder = new JwtDecoder(); // JwtDecoder 인스턴스 추가
         this.initialize();
     }
 
@@ -82,7 +85,8 @@ export class Header {
             container: document.getElementById(this.containerId),
             backButton: document.getElementById('backButton'),
             profileContainer: document.getElementById('profile-container'),
-            profileImage: document.getElementById('userProfileImage'),
+            profileImageContainer: document.getElementById('profileImage'), // 이미지 컨테이너
+            profileImageElement: document.getElementById('userProfileImage'), // 실제 이미지 요소
             profileDropdown: document.getElementById('profileDropdown'),
             editProfile: document.getElementById('editProfile'),
             editPassword: document.getElementById('editPassword'),
@@ -104,11 +108,11 @@ export class Header {
      */
     bindEvents() {
         this.elements.backButton?.addEventListener('click', this.handleBackNavigation.bind(this));
-        this.elements.profileImage?.addEventListener('click', this.handleProfileClick.bind(this));
+        this.elements.profileImageContainer?.addEventListener('click', this.handleProfileClick.bind(this));
         document.addEventListener('click', this.handleOutsideClick.bind(this));
         
-        this.elements.editProfile?.addEventListener('click', () => this.navigate('/pages/auth/profile/index.html'));
-        this.elements.editPassword?.addEventListener('click', () => this.navigate('/pages/auth/profile/password.html'));
+        this.elements.editProfile?.addEventListener('click', () => this.navigate('/pages/profile/modify/index.html'));
+        this.elements.editPassword?.addEventListener('click', () => this.navigate('/pages/profile/changePasswd/index.html'));
         this.elements.logout?.addEventListener('click', this.handleLogout.bind(this));
     }
 
@@ -126,7 +130,8 @@ export class Header {
      * @private
      */
     updateProfileVisibility() {
-        const token = localStorage.getItem('jwt');
+        // 'jwt' -> 'authToken' 변경
+        const token = localStorage.getItem('authToken');
         if (this.elements.profileContainer) {
             this.elements.profileContainer.style.display = token ? 'block' : 'none';
         }
@@ -137,15 +142,26 @@ export class Header {
      * @private
      */
     updateProfileImage() {
-        const token = localStorage.getItem('jwt');
+        // 'jwt' -> 'authToken' 변경
+        const token = localStorage.getItem('authToken');
         const DEFAULT_PROFILE_IMAGE = '/shared/assets/images/default-profile.svg';
         
-        if (this.elements.profileImage) {
+        if (this.elements.profileImageElement) {
             if (token) {
                 // JWT 토큰이 있는 경우, API에서 프로필 이미지 URL 가져오기
                 this.fetchProfileImage();
             } else {
-                this.elements.profileImage.src = DEFAULT_PROFILE_IMAGE;
+                this.elements.profileImageElement.src = DEFAULT_PROFILE_IMAGE;
+            }
+            
+            // 이미지 요소가 항상 보이도록 스타일 적용
+            this.elements.profileImageElement.style.display = 'block';
+            this.elements.profileImageElement.style.width = '100%';
+            this.elements.profileImageElement.style.height = '100%';
+            
+            // 컨테이너도 표시 확인
+            if (this.elements.profileImageContainer) {
+                this.elements.profileImageContainer.style.display = 'block';
             }
         }
     }
@@ -156,20 +172,19 @@ export class Header {
      */
     async fetchProfileImage() {
         try {
-            const token = localStorage.getItem('jwt');
-            const response = await fetch('/api/user/profile/image', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const token = localStorage.getItem('authToken');
+            if (!token) return;
             
-            if (response.ok) {
-                const data = await response.json();
-                this.elements.profileImage.src = data.imageUrl || '/shared/assets/images/default-profile.svg';
+            // 기본 이미지 표시 (사용자 정보 조회 API가 없으므로)
+            const imgElement = this.elements.profileImageElement;
+            if (imgElement) {
+                imgElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
             }
         } catch (error) {
-            this.handleError('Failed to fetch profile image', error);
-            this.elements.profileImage.src = '/shared/assets/images/default-profile.svg';
+            console.error('Failed to fetch profile image:', error);
+            if (this.elements.profileImageElement) {
+                this.elements.profileImageElement.src = window.location.origin + '/shared/assets/images/default-profile.svg';
+            }
         }
     }
 
@@ -214,7 +229,8 @@ export class Header {
      */
     async handleLogout() {
         try {
-            localStorage.removeItem('jwt');
+            // 'jwt' -> 'authToken' 변경
+            localStorage.removeItem('authToken');
             this.navigate('/pages/auth/login/index.html');
         } catch (error) {
             this.handleError('Logout failed', error);

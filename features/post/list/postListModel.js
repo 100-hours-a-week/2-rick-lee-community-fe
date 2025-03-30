@@ -24,21 +24,74 @@ export class PostListModel {
             this.error = null;
             
             const result = await postListApi.getPosts(options);
+            console.log('API 응답 전체:', result); // 디버깅용 로그
             
             if (result.success) {
-                this.posts = result.data.posts;
-                this.pagination = result.pagination;
+                // 백엔드 응답 구조에 맞게 데이터 추출
+                // 'data' 또는 'data.posts'에서 게시글 목록 추출
+                let posts = [];
+                if (result.data) {
+                    // 백엔드 응답 구조에 맞게 조정
+                    if (Array.isArray(result.data)) {
+                        posts = result.data;
+                    } else if (result.data.posts) {
+                        posts = result.data.posts;
+                    }
+                }
+                
+                console.log('추출된 게시글 데이터:', posts); // 디버깅용 로그
+                
+                // 게시글 데이터 저장
+                this.posts = this.transformPostData(posts);
+                
+                // 페이지네이션 저장 (있는 경우)
+                if (result.pagination) {
+                    this.pagination = result.pagination;
+                } else if (result.data && result.data.pagination) {
+                    this.pagination = result.data.pagination;
+                }
+                
                 return { success: true, data: this.posts };
             } else {
-                this.error = result.message;
-                return { success: false, message: result.message };
+                this.error = result.message || '게시글을 불러오는데 실패했습니다.';
+                return { success: false, message: this.error };
             }
         } catch (error) {
+            console.error('게시글 목록 로드 중 오류:', error);
             this.error = error.message || '게시글을 불러오는데 실패했습니다.';
             return { success: false, message: this.error };
         } finally {
             this.loading = false;
         }
+    }
+
+    /**
+     * 백엔드 데이터를 프론트엔드 형식으로 변환
+     * @param {Array} posts - 백엔드에서 받은 게시글 데이터
+     * @returns {Array} 변환된 게시글 데이터
+     */
+    transformPostData(posts) {
+        if (!Array.isArray(posts)) return [];
+        
+        return posts.map(post => {
+            return {
+                id: post.postId || post.post_id || post.id,
+                title: post.title || '제목 없음',
+                content: post.content,
+                // 작성자 정보 (중첩 객체가 아닐 수 있음)
+                author: {
+                    id: post.user_id || (post.author ? post.author.user_id : null),
+                    nickname: post.nickname || post.authorNickname || (post.author ? post.author.nickname : '작성자 정보 없음')
+                },
+                // 날짜 정보
+                createdAt: post.created_at || post.createdAt,
+                updatedAt: post.updated_at || post.updatedAt,
+                // 통계 정보
+                viewCount: post.view_counts || post.viewCount || 0,
+                commentCount: post.comment_count || post.commentCount || 0,
+                likeCount: post.like_count || post.likeCount || 0
+            };
+        });
     }
 
     /**
@@ -57,7 +110,7 @@ export class PostListModel {
      * @returns {string} 포맷팅된 문자열
      */
     formatNumber(value) {
-        if (!value && value !== 0) return '0';
+        if (value === null || value === undefined) return '0';
         
         if (value >= 100000) {
             return `${Math.floor(value / 1000)}k`;
@@ -79,6 +132,8 @@ export class PostListModel {
         if (!dateString) return '';
         
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return ''; // 유효하지 않은 날짜
+        
         const now = new Date();
         const diff = now - date;
         

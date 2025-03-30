@@ -1,170 +1,198 @@
-// features/auth/signup/ui/profileImageManager.js
-import { ImageValidator } from './imageValidation.js';
-import { ImageState } from './imageState.js';
-import { ImageDOMManager } from './imageDOM.js';
+/**
+ * 프로필 이미지 관리 모듈
+ * @module profileImageManager
+ */
+import { ImageDOM } from './imageDOM.js';
+import { ImageState } from '../model/imageState.js';
+import { ImageError } from '/utilities/image/imageConfig.js';
 
 /**
- * ProfileImageManager 클래스
- * 회원가입 프로필 이미지 관리를 담당
+ * 프로필 이미지 관리 클래스
+ * UI 계층의 컨트롤러로, DOM과 상태 간의 중개자 역할
  */
 export class ProfileImageManager {
-    // 프라이빗 필드 선언
-    #eventHandlers;
-    #callbacks;
-    #validator;
-    #state;
-    #domManager;
-
     /**
-     * @typedef {Object} ProfileImageCallbacks
-     * @property {(imageData: string, isDefault: boolean) => void} onImageChange - 이미지 변경 콜백
-     * @property {(message: string) => void} onError - 에러 발생 콜백
+     * @param {Object} options - 초기화 옵션
+     * @param {Function} options.onChange - 이미지 변경 시 호출될 콜백
+     * @param {Function} options.onError - 오류 발생 시 호출될 콜백
+     * @param {Object} options.domSelectors - DOM 요소 선택자 (옵션)
      */
-
-    /**
-     * @param {ProfileImageCallbacks} callbacks - 이미지 관련 콜백 함수들
-     */
-    constructor(callbacks) {
-        if (!callbacks?.onImageChange || !callbacks?.onError) {
-            throw new Error('필수 콜백이 누락되었습니다.');
+    constructor(options = {}) {
+        // 콜백 검증
+        if (!options.onChange) {
+            console.warn('onChange 콜백이 제공되지 않았습니다.');
         }
-
-        this.#callbacks = callbacks;
-        this.#validator = new ImageValidator();
-        this.#state = new ImageState(this.#handleStateChange.bind(this));
-        this.#domManager = new ImageDOMManager();
         
-        this.#eventHandlers = this.#createEventHandlers();
-        this.#setupEventListeners();
+        // 이벤트 콜백
+        this.callbacks = {
+            onChange: options.onChange || (() => {}),
+            onError: options.onError || console.error
+        };
+        
+        // 상태 및 DOM 초기화
+        this.dom = new ImageDOM({ selectors: options.domSelectors });
+        this.state = new ImageState({ 
+            onChange: this._handleStateChange.bind(this) 
+        });
+        
+        // 이벤트 핸들러 등록
+        this._setupEventHandlers();
     }
 
     /**
-     * 이벤트 핸들러 생성
+     * 이벤트 핸들러 설정
      * @private
      */
-    #createEventHandlers() {
-        return new Map([
-            ['containerClick', (e) => {
-                e.stopPropagation();
-                this.#domManager.toggleDropdown();
-            }],
-            ['fileChange', this.#handleImageUpload.bind(this)],
-            ['documentClick', () => this.#domManager.hideDropdown()],
-            ['uploadClick', (e) => {
-                e.stopPropagation();
-                this.#domManager.triggerFileInput();
-                this.#domManager.hideDropdown();
-            }],
-            ['defaultClick', (e) => {
-                e.stopPropagation();
-                this.#state.resetToDefault();
-                this.#domManager.hideDropdown();
-            }]
-        ]);
+    _setupEventHandlers() {
+        // 이벤트 핸들러 객체 생성
+        this.handlers = {
+            containerClick: () => this.dom.toggleDropdown(),
+            fileChange: (file) => this._handleFileSelect(file),
+            uploadClick: () => {
+                this.dom.triggerFileInput();
+                this.dom.hideDropdown();
+            },
+            defaultClick: () => {
+                this.state.resetToDefault();
+                this.dom.hideDropdown();
+            },
+            documentClick: () => this.dom.hideDropdown()
+        };
+        
+        // DOM에 이벤트 리스너 등록
+        this.dom.setupEventListeners(this.handlers);
     }
 
-    // ... 나머지 메서드들에서도 private 필드 접근 시 # 사용
-    #setupEventListeners() {
+    /**
+     * 파일 선택 처리
+     * @private
+     * @param {File} file - 선택된 이미지 파일
+     */
+    async _handleFileSelect(file) {
         try {
-            const elements = this.#domManager.elements;
-            if (!elements) {
-                throw new Error('DOM 요소가 초기화되지 않았습니다.');
-            }
-
-            elements.container.addEventListener('click', this.#eventHandlers.get('containerClick'));
-            elements.fileInput.addEventListener('change', this.#eventHandlers.get('fileChange'));
-            elements.uploadBtn.addEventListener('click', this.#eventHandlers.get('uploadClick'));
-            elements.defaultBtn.addEventListener('click', this.#eventHandlers.get('defaultClick'));
-            document.addEventListener('click', this.#eventHandlers.get('documentClick'));
-        } catch (error) {
-            this.#handleError('이미지 관리자 초기화 중 오류가 발생했습니다.');
-            console.error('이벤트 리스너 설정 오류:', error);
-        }
-    }
-
-    #handleStateChange(imageData, isDefault) {
-        try {
-            this.#callbacks.onImageChange(imageData, isDefault);
-        } catch (error) {
-            console.error('상태 변경 처리 중 오류:', error);
-            this.#handleError('이미지 상태 업데이트 중 오류가 발생했습니다.');
-        }
-    }
-
-    async #handleImageUpload(event) {
-        try {
-            const file = event.target.files?.[0];
-            if (!file) {
-                throw new Error('파일이 선택되지 않았습니다.');
-            }
-
-            this.#validator.validateFile(file);
-            const imageData = await this.#validator.readFileAsDataURL(file);
+            // 파일이 없으면 무시
+            if (!file) return;
             
-            if (!imageData) {
-                throw new Error('이미지 데이터를 읽을 수 없습니다.');
-            }
-
-            this.#state.updateImage(imageData);
-            this.#domManager.updatePreview(imageData);
-
+            // UI 상태 업데이트
+            this.dom.setLoading(true);
+            this.dom.showError(null);
+            
+            // 이미지 상태 업데이트 (처리 포함)
+            await this.state.updateWithFile(file);
+            
         } catch (error) {
-            console.error('이미지 처리 중 오류:', error);
-            this.#handleError(error.message || '이미지 처리 중 오류가 발생했습니다.');
+            // 오류 메시지 표시
+            const message = error instanceof ImageError 
+                ? error.message 
+                : '이미지 처리 중 오류가 발생했습니다.';
+                
+            this.dom.showError(message);
+            this.callbacks.onError(message);
+            
         } finally {
-            if (event.target) {
-                event.target.value = '';
-            }
+            // 로딩 상태 해제
+            this.dom.setLoading(false);
         }
     }
 
-    #handleError(message) {
+    /**
+     * 상태 변경 처리
+     * @private
+     * @param {Object} state - 변경된 상태
+     */
+    _handleStateChange(state) {
+        // 로딩 상태 업데이트
+        this.dom.setLoading(state.isProcessing);
+        
+        // 오류 표시
+        if (state.error) {
+            this.dom.showError(state.error);
+        } else {
+            this.dom.showError(null);
+        }
+        
+        // 이미지 미리보기 업데이트
+        if (state.dataURL) {
+            this.dom.updatePreview(state.dataURL);
+        }
+        
+        // 상위 컴포넌트에 변경 알림
+        this.callbacks.onChange({
+            dataURL: state.dataURL,
+            file: state.file,
+            isDefault: state.isDefault
+        });
+    }
+
+    /**
+     * 현재 이미지 데이터 반환 (API 요청용)
+     * @returns {Object} 현재 이미지 정보 (file, dataURL, isDefault)
+     */
+    getCurrentImageData() {
+        // 상태 객체가 없거나 예상 구조가 아닌 경우 기본값 반환
+        if (!this.state) {
+            console.warn('이미지 상태가 초기화되지 않았습니다.');
+            return {
+                file: null,
+                dataURL: null,
+                isDefault: true
+            };
+        }
+        
+        // ImageState 클래스가 수정된 경우에 따라 적절한 방법 사용
+        // 방법 1: state 객체가 직접 상태 정보를 가지고 있는 경우
+        if (typeof this.state.dataURL !== 'undefined') {
+            return {
+                file: this.state.file,
+                dataURL: this.state.dataURL,
+                isDefault: this.state.isDefault
+            };
+        }
+        
+        // 방법 2: 새로운 getState 메서드 사용 (있는 경우)
+        if (typeof this.state.getState === 'function') {
+            return this.state.getState();
+        }
+        
+        // 기본 폴백: 기본 이미지로 간주
+        return {
+            file: null,
+            dataURL: null,
+            isDefault: true
+        };
+    }
+
+    /**
+     * 저장된 이미지 데이터로 상태 초기화
+     * @param {string} dataURL - 이전에 저장된 이미지 Data URL
+     */
+    initializeWithSavedData(dataURL) {
+        if (!dataURL) return;
+        
         try {
-            this.#callbacks.onError(message);
+            this.state.updateWithDataURL(dataURL);
         } catch (error) {
-            console.error('에러 처리 중 오류:', error);
+            console.error('저장된 이미지 복원 중 오류:', error);
+            this.callbacks.onError('저장된 이미지를 불러올 수 없습니다.');
         }
     }
 
     /**
-     * 현재 이미지 데이터 반환
-     * @public
+     * 컴포넌트 정리 (메모리 누수 방지)
      */
-    getCurrentImage() {
-        return this.#state.getCurrentImage();
-    }
-
-    /**
-     * 기본 이미지 사용 여부 반환
-     * @public
-     */
-    isDefaultImage() {
-        return this.#state.isDefaultImage();
-    }
-
-    /**
-     * 컴포넌트 정리
-     * @public
-     */
-    destroy() {
-        try {
-            const elements = this.#domManager.elements;
-            
-            // 이벤트 리스너 제거
-            elements.container.removeEventListener('click', this.#eventHandlers.get('containerClick'));
-            elements.fileInput.removeEventListener('change', this.#eventHandlers.get('fileChange'));
-            elements.uploadBtn.removeEventListener('click', this.#eventHandlers.get('uploadClick'));
-            elements.defaultBtn.removeEventListener('click', this.#eventHandlers.get('defaultClick'));
-            document.removeEventListener('click', this.#eventHandlers.get('documentClick'));
-            
-            // 리소스 정리
-            this.#eventHandlers.clear();
-            this.#state = null;
-            this.#domManager = null;
-            this.#validator = null;
-            this.#callbacks = null;
-        } catch (error) {
-            console.error('컴포넌트 정리 중 오류:', error);
+    dispose() {
+        // 이벤트 리스너 제거
+        this.dom.removeEventListeners(this.handlers);
+        
+        // 상태 객체 정리
+        if (this.state) {
+            this.state.dispose();
         }
+        
+        // 참조 정리
+        this.state = null;
+        this.dom = null;
+        this.handlers = null;
+        this.callbacks = null;
     }
 }

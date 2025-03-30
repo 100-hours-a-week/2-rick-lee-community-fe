@@ -18,10 +18,10 @@ class PostListPage {
      */
     initializeElements() {
         return {
-            postListContainer: document.getElementById('postList'),
+            postListContainer: document.getElementById('postsContainer'),
             writeButton: document.getElementById('writeButton'),
-            loadingIndicator: document.getElementById('loadingIndicator'),
-            errorMessage: document.getElementById('errorMessage')
+            loadingIndicator: document.getElementById('loading'),
+            // errorMessage: document.getElementById('errorMessage')
         };
     }
 
@@ -45,6 +45,8 @@ class PostListPage {
             this.showLoading(true);
             const result = await postListModel.loadPosts();
             
+            console.log('API 응답 데이터:', result); // 데이터 로깅 추가
+            
             if (result.success) {
                 this.renderPosts(result.data);
             } else {
@@ -58,6 +60,34 @@ class PostListPage {
         }
     }
 
+    /**
+     * 개별 게시글 HTML 생성
+     * @private
+     * @param {Object} post - 게시글 데이터
+     * @returns {string} 게시글 HTML
+     */
+    // pages/post/list/index.js
+    createPostElement(post) {
+        // 디버깅을 위한 콘솔 로그 추가
+        console.log('게시글 렌더링:', post);
+        
+        return `
+            <div class="post-item" data-post-id="${post.id}">
+                <div class="post-header">
+                    <h3 class="post-title" id="postTitle">${postListModel.formatTitle(postListModel.escapeHtml(post.title))}</h3>
+                    <div class="post-meta">
+                        <span class="post-author">${postListModel.escapeHtml(post.author.nickname)}</span>
+                        <span class="post-date">${postListModel.formatDate(post.createdAt)}</span>
+                        <span class="post-stats">
+                            <span class="views" id="viewCount">조회 ${postListModel.formatNumber(post.viewCount)}</span>
+                            <span class="comments" id="commentCount">댓글 ${postListModel.formatNumber(post.commentCount)}</span>
+                            <span class="likes" id="likeCount">좋아요 ${postListModel.formatNumber(post.likeCount)}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
     /**
      * 게시글 목록 렌더링
      * @private
@@ -77,34 +107,18 @@ class PostListPage {
         postItems.forEach(item => {
             item.addEventListener('click', () => {
                 const postId = item.dataset.postId;
-                window.location.href = `/pages/post/details/index.html?id=${postId}`;
+                // 클릭 시 postId 로깅
+                console.log('게시글 클릭, postId:', postId);
+                
+                // postId가 undefined인지 검사하고, 유효한 값만 사용
+                if (postId && postId !== 'undefined') {
+                    window.location.href = `/pages/post/details/index.html?id=${postId}`;
+                } else {
+                    console.error('유효하지 않은 게시글 ID:', postId);
+                    alert('게시글 상세 페이지를 불러올 수 없습니다.');
+                }
             });
         });
-    }
-
-    /**
-     * 개별 게시글 HTML 생성
-     * @private
-     * @param {Object} post - 게시글 데이터
-     * @returns {string} 게시글 HTML
-     */
-    createPostElement(post) {
-        return `
-            <div class="post-item" data-post-id="${post.id}">
-                <div class="post-header">
-                    <h3 class="post-title" id="postTitle">${postListModel.formatTitle(postListModel.escapeHtml(post.title))}</h3>
-                    <div class="post-meta">
-                        <span class="post-author">${postListModel.escapeHtml(post.author.nickname)}</span>
-                        <span class="post-date">${postListModel.formatDate(post.createdAt)}</span>
-                        <span class="post-stats">
-                            <span class="views" id="viewCount">조회 ${postListModel.formatNumber(post.viewCount)}</span>
-                            <span class="comments" id="commentCount">댓글 ${postListModel.formatNumber(post.commentCount)}</span>
-                            <span class="likes" id="likeCount">좋아요 ${postListModel.formatNumber(post.likeCount)}</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     /**
